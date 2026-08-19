@@ -1,0 +1,1422 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vyana Soul — Soul Guidance</title>
+  <meta name="description" content="Unlock the wisdom of your soul for profound healing. Akashic Records, Pranic Healing, Lama Fera and Spiritual Courses by Rekha Bala.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
+  <style>
+    /* ========== RESET & BASE ========== */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      background: #090314;
+      color: #fff;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+      overflow-x: hidden;
+    }
+    a { color: inherit; text-decoration: none; }
+    input, textarea, button { font-family: inherit; }
+    ul { list-style: none; }
+
+    /* ========== SCROLL CANVAS (BACKGROUND) ========== */
+    #canvas {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* Dark overlay on top of canvas so text is readable */
+    .canvas-overlay {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: rgba(9, 3, 20, 0.55);
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    /* ========== LOADER ========== */
+    .loader {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100vw; height: 100vh;
+      background: #090314;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+      transition: opacity 0.8s ease;
+    }
+    .loader.hidden { opacity: 0; pointer-events: none; }
+    .loader-bar-track {
+      width: 240px; height: 3px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .loader-bar-fill {
+      height: 100%; width: 0%;
+      background: linear-gradient(90deg, #f472b6, #a855f7);
+      border-radius: 2px;
+      transition: width 0.15s ease;
+    }
+    .loader-text {
+      color: rgba(255,255,255,0.4);
+      font-size: 12px;
+      margin-top: 12px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ========== CONTENT WRAPPER ========== */
+    .content-wrapper {
+      position: relative;
+      z-index: 2;
+    }
+    .container {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 0 96px;
+    }
+    @media (max-width: 1024px) { .container { padding: 0 48px; } }
+    @media (max-width: 768px) { .container { padding: 0 24px; } }
+
+    /* ========== UTILITIES ========== */
+    .glass-panel {
+      background: rgba(255,255,255,0.03);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid rgba(255,255,255,0.08);
+    }
+    .text-gradient {
+      background: linear-gradient(to right, #fff, #a09baf);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .text-pink { color: #f472b6; }
+    .text-gray-300 { color: #d1d5db; }
+    .text-gray-400 { color: #9ca3af; }
+    .text-gray-500 { color: #6b7280; }
+    .text-gray-600 { color: #4b5563; }
+    .tracking-wider { letter-spacing: 0.2em; }
+    .font-serif-italic {
+      font-family: 'Playfair Display', serif;
+      font-style: italic;
+      font-weight: 500;
+    }
+
+    /* SVG icons */
+    .icon { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+    .icon-lg { width: 24px; height: 24px; }
+    .icon-xl { width: 32px; height: 32px; }
+
+    /* ========== SECTION REVEAL ANIMATIONS ========== */
+    .section-reveal {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .section-reveal.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* ========== NAVBAR ========== */
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 32px 0;
+    }
+    .navbar-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .navbar-logo-icon {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      border: 1px solid #f472b6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .navbar-logo-inner {
+      width: 20px; height: 20px;
+      border-top: 2px solid #f472b6;
+      border-left: 2px solid #f472b6;
+      border-radius: 100% 0 0 0;
+    }
+    .navbar-brand { display: flex; flex-direction: column; }
+    .navbar-brand-name {
+      font-size: 20px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      line-height: 1;
+    }
+    .navbar-brand-sub {
+      font-size: 10px;
+      color: #9ca3af;
+      letter-spacing: 0.2em;
+      margin-top: 4px;
+    }
+    .navbar-links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+      font-size: 14px;
+      color: #d1d5db;
+    }
+    .navbar-links a { transition: color 0.3s; }
+    .navbar-links a:hover { color: #fff; }
+    .navbar-link-active {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      color: #fff !important;
+    }
+    .navbar-link-dot {
+      width: 4px; height: 4px;
+      background: #f472b6;
+      border-radius: 50%;
+    }
+    .navbar-cta {
+      padding: 10px 24px;
+      border-radius: 9999px;
+      border: 1px solid rgba(255,255,255,0.2);
+      font-size: 14px;
+      transition: background 0.3s;
+      background: transparent;
+      color: #fff;
+      cursor: pointer;
+      display: inline-block;
+    }
+    .navbar-cta:hover { background: rgba(255,255,255,0.1); }
+    @media (max-width: 768px) {
+      .navbar-links, .navbar-cta { display: none; }
+    }
+
+    /* ========== HERO ========== */
+    .hero {
+      padding-top: 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 64px;
+      position: relative;
+      min-height: 80vh;
+    }
+    .hero-left { flex: 1; z-index: 10; }
+    .hero-tag {
+      font-size: 13px;
+      letter-spacing: 0.2em;
+      color: #9ca3af;
+      margin-bottom: 24px;
+    }
+    .hero h1 {
+      font-size: clamp(40px, 5vw, 72px);
+      font-weight: 300;
+      line-height: 1.1;
+      margin-bottom: 24px;
+    }
+    .hero-desc {
+      color: #9ca3af;
+      font-size: 18px;
+      max-width: 560px;
+      line-height: 1.7;
+      margin-bottom: 32px;
+    }
+    .hero-buttons { display: flex; flex-wrap: wrap; gap: 16px; }
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: linear-gradient(135deg, #f472b6, #a855f7);
+      color: #fff;
+      padding: 14px 32px;
+      border-radius: 9999px;
+      font-weight: 500;
+      font-size: 14px;
+      letter-spacing: 0.05em;
+      border: none;
+      cursor: pointer;
+      transition: opacity 0.3s;
+    }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-outline {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      border: 1px solid rgba(255,255,255,0.2);
+      color: #fff;
+      padding: 14px 32px;
+      border-radius: 9999px;
+      font-weight: 500;
+      font-size: 14px;
+      letter-spacing: 0.05em;
+      background: transparent;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .btn-outline:hover { background: rgba(255,255,255,0.05); }
+    .hero-avail {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 32px;
+    }
+    .pulse-dot {
+      width: 12px; height: 12px;
+      border-radius: 50%;
+      background: #f472b6;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .hero-avail-text { font-size: 14px; color: #9ca3af; line-height: 1.5; }
+    .hero-avail-text strong { color: #fff; font-weight: 500; }
+
+    /* Hero right - abstract viz */
+    .hero-right {
+      flex: 1;
+      position: relative;
+      aspect-ratio: 1;
+      max-width: 500px;
+    }
+    .hero-glow {
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at center, rgba(139, 92, 246, 0.3), rgba(244, 114, 182, 0.1), transparent 70%);
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.5;
+    }
+    .hero-circle {
+      position: absolute;
+      inset: 16px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: linear-gradient(to top, rgba(139, 92, 246, 0.2), transparent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+    .hero-circle-inner {
+      width: 75%; height: 75%;
+      border-radius: 50%;
+      border: 1px solid rgba(244, 114, 182, 0.3);
+      box-shadow: 0 0 100px rgba(244, 114, 182, 0.2);
+    }
+
+    /* Floating cards */
+    .float-card {
+      position: absolute;
+      z-index: 20;
+      padding: 20px;
+      border-radius: 16px;
+      box-shadow: 0 25px 50px rgba(0,0,0,0.5);
+    }
+    .float-card-guidance { top: 48px; right: 0; width: 192px; }
+    .float-card-founder { bottom: 128px; left: -48px; width: 192px; }
+    .float-card-offerings { bottom: 48px; right: 48px; width: 224px; }
+    .float-card-label {
+      font-size: 10px;
+      color: #9ca3af;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-bottom: 8px;
+    }
+    .float-card-text { font-size: 14px; font-weight: 500; }
+    .float-card-founder-name { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+    .float-card-founder-role { font-size: 14px; color: #9ca3af; }
+    .offerings-list { display: flex; flex-direction: column; gap: 12px; }
+    .offerings-list li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      color: #d1d5db;
+    }
+    .offerings-dot { width: 4px; height: 4px; background: #fff; border-radius: 50%; flex-shrink: 0; }
+    .heart-icon-float { margin-top: 12px; margin-left: auto; display: block; color: #f472b6; }
+
+    @media (max-width: 1024px) {
+      .hero { flex-direction: column; padding-top: 24px; }
+      .hero-right { max-width: 400px; width: 100%; }
+    }
+    @media (max-width: 768px) {
+      .hero-right { display: none; }
+    }
+
+    /* ========== SECTIONS SHARED ========== */
+    .main-content { display: flex; flex-direction: column; gap: 128px; padding-bottom: 128px; }
+    .section-header { margin-bottom: 48px; }
+    .section-label {
+      font-size: 13px;
+      letter-spacing: 0.2em;
+      color: #9ca3af;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .section-title {
+      font-size: clamp(28px, 3vw, 40px);
+      font-weight: 300;
+      line-height: 1.3;
+    }
+    .section-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .section-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      transition: color 0.3s;
+    }
+    .section-link:hover { color: #f472b6; }
+
+    /* ========== CASE STUDIES / OFFERINGS ========== */
+    .offerings-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    @media (max-width: 1024px) { .offerings-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 768px) { .offerings-grid { grid-template-columns: 1fr; } }
+
+    .offering-card {
+      border-radius: 24px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .offering-card:hover { transform: translateY(-8px); }
+    .offering-image {
+      width: 100%;
+      aspect-ratio: 16/9;
+      border-radius: 16px;
+      margin-bottom: 32px;
+      border: 1px solid rgba(255,255,255,0.05);
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .offering-image-inner {
+      width: 75%; height: 75%;
+      border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: rgba(255,255,255,0.05);
+      backdrop-filter: blur(8px);
+    }
+    .offering-image-1 { background: linear-gradient(135deg, rgba(88,28,135,0.8), rgba(49,46,129,0.8)); }
+    .offering-image-2 { background: linear-gradient(135deg, rgba(157,23,77,0.4), rgba(88,28,135,0.4)); }
+    .offering-image-3 { background: linear-gradient(135deg, rgba(30,41,59,0.8), rgba(15,23,42,0.8)); }
+    .offering-id { font-size: 14px; color: #9ca3af; margin-bottom: 8px; }
+    .offering-title { font-size: 20px; font-weight: 600; margin-bottom: 4px; }
+    .offering-desc { font-size: 14px; color: #9ca3af; margin-bottom: 24px; }
+    .offering-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: auto;
+    }
+    .offering-tags { display: flex; flex-wrap: wrap; gap: 8px; }
+    .offering-tag {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      border: 1px solid rgba(255,255,255,0.1);
+      padding: 4px 12px;
+      border-radius: 9999px;
+      color: #9ca3af;
+      background: rgba(255,255,255,0.05);
+    }
+    .offering-arrow {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .offering-card:hover .offering-arrow { background: rgba(255,255,255,0.1); }
+
+    /* ========== SERVICES ========== */
+    .services-row {
+      display: flex;
+      gap: 32px;
+    }
+    .services-left { flex: 1; }
+    .services-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 48px 32px;
+    }
+    .service-icon-box {
+      width: 48px; height: 48px;
+      border-radius: 12px;
+      border: 1px solid rgba(244,114,182,0.3);
+      background: rgba(244,114,182,0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 24px;
+      color: #f472b6;
+    }
+    .service-name {
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      margin-bottom: 12px;
+    }
+    .service-desc { font-size: 14px; color: #9ca3af; line-height: 1.6; }
+
+    /* Tools / Focus Areas sidebar */
+    .tools-panel {
+      width: 320px;
+      border-radius: 24px;
+      padding: 32px;
+      height: fit-content;
+    }
+    .tools-panel h3 {
+      font-size: 12px;
+      letter-spacing: 0.2em;
+      color: #9ca3af;
+      text-transform: uppercase;
+      margin-bottom: 32px;
+    }
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    .tool-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 12px;
+    }
+    .tool-icon-box {
+      width: 56px; height: 56px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .tool-icon-inner {
+      width: 24px; height: 24px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 11px;
+      background: rgba(255,255,255,0.05);
+    }
+    .tool-name { font-size: 10px; color: #9ca3af; text-align: center; }
+    .tool-pink { background: rgba(236,72,153,0.1); }
+    .tool-pink .tool-icon-inner { color: #ec4899; }
+    .tool-yellow { background: rgba(234,179,8,0.1); }
+    .tool-yellow .tool-icon-inner { color: #eab308; }
+    .tool-purple { background: rgba(168,85,247,0.1); }
+    .tool-purple .tool-icon-inner { color: #a855f7; }
+    .tool-blue { background: rgba(59,130,246,0.1); }
+    .tool-blue .tool-icon-inner { color: #3b82f6; }
+    .tool-orange { background: rgba(249,115,22,0.1); }
+    .tool-orange .tool-icon-inner { color: #f97316; }
+    .tool-violet { background: rgba(167,139,250,0.1); }
+    .tool-violet .tool-icon-inner { color: #a78bfa; }
+
+    @media (max-width: 1024px) {
+      .services-row { flex-direction: column; }
+      .tools-panel { width: 100%; }
+    }
+    @media (max-width: 600px) {
+      .services-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ========== PROCESS ========== */
+    .process-steps {
+      position: relative;
+      padding-top: 48px;
+    }
+    .process-line {
+      position: absolute;
+      top: 80px;
+      left: 0; right: 0;
+      height: 1px;
+      background: rgba(255,255,255,0.1);
+    }
+    .process-grid {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 32px;
+    }
+    .process-step { position: relative; z-index: 1; }
+    .process-icon-box {
+      width: 64px; height: 64px;
+      border-radius: 16px;
+      border: 1px solid rgba(244,114,182,0.3);
+      background: #090314;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 32px;
+      color: #f472b6;
+      box-shadow: 0 0 15px rgba(244,114,182,0.1);
+    }
+    .process-step-header {
+      display: flex;
+      gap: 16px;
+      align-items: baseline;
+      margin-bottom: 8px;
+    }
+    .process-step-num { color: #f472b6; font-weight: 500; font-size: 14px; }
+    .process-step-name { font-size: 13px; font-weight: 600; letter-spacing: 0.1em; }
+    .process-step-desc { font-size: 14px; color: #9ca3af; line-height: 1.6; }
+    @media (max-width: 1024px) {
+      .process-grid { grid-template-columns: repeat(3, 1fr); }
+      .process-line { display: none; }
+    }
+    @media (max-width: 768px) {
+      .process-grid { grid-template-columns: 1fr; }
+    }
+
+    /* ========== TESTIMONIALS ========== */
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 24px;
+    }
+    @media (max-width: 1024px) { .testimonials-grid { grid-template-columns: 1fr; } }
+    .testimonial-card {
+      border-radius: 24px;
+      padding: 32px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+    .testimonial-quote-icon {
+      position: absolute;
+      top: 32px; left: 32px;
+      width: 32px; height: 32px;
+      color: rgba(244,114,182,0.2);
+    }
+    .testimonial-text {
+      color: #d1d5db;
+      line-height: 1.7;
+      font-size: 14px;
+      margin-bottom: 40px;
+      margin-top: 24px;
+      position: relative;
+      z-index: 1;
+    }
+    .testimonial-author {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-top: auto;
+    }
+    .testimonial-avatar {
+      width: 48px; height: 48px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+    .testimonial-avatar-1 { background: rgba(30,58,138,0.8); }
+    .testimonial-avatar-2 { background: rgba(88,28,135,0.8); }
+    .testimonial-avatar-3 { background: rgba(6,78,59,0.8); }
+    .testimonial-name { font-size: 12px; font-weight: 600; letter-spacing: 0.1em; }
+    .testimonial-role { font-size: 10px; color: #6b7280; text-transform: uppercase; margin-top: 4px; }
+
+    /* ========== CONTACT ========== */
+    .contact-section {
+      border-radius: 40px;
+      padding: 16px;
+      display: flex;
+      gap: 32px;
+      overflow: hidden;
+    }
+    .contact-left {
+      width: 33%;
+      border-radius: 24px;
+      background: linear-gradient(to top, rgba(88,28,135,0.5), rgba(157,23,77,0.2));
+      border: 1px solid rgba(255,255,255,0.05);
+      position: relative;
+      min-height: 300px;
+      overflow: hidden;
+    }
+    .contact-left-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(to top, #090314, transparent);
+      z-index: 1;
+    }
+    .contact-left-glow-1 {
+      position: absolute;
+      top: 25%; left: 25%;
+      width: 128px; height: 128px;
+      border-radius: 50%;
+      background: rgba(244,114,182,0.2);
+      filter: blur(32px);
+    }
+    .contact-left-glow-2 {
+      position: absolute;
+      bottom: 25%; right: 25%;
+      width: 96px; height: 96px;
+      border-radius: 50%;
+      background: rgba(168,85,247,0.3);
+      filter: blur(24px);
+    }
+    .contact-left-text {
+      position: absolute;
+      left: 24px;
+      top: 50%;
+      transform: translateY(-50%) rotate(-90deg);
+      transform-origin: left center;
+      font-size: 10px;
+      letter-spacing: 0.3em;
+      color: #9ca3af;
+      text-transform: uppercase;
+      white-space: nowrap;
+      z-index: 2;
+    }
+    .contact-right {
+      flex: 1;
+      display: flex;
+      gap: 48px;
+      padding: 32px 16px;
+    }
+    .contact-info { flex: 1; }
+    .contact-info-label {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      color: #f472b6;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .contact-info h2 {
+      font-size: clamp(24px, 3vw, 36px);
+      font-weight: 300;
+      line-height: 1.3;
+      margin-bottom: 24px;
+    }
+    .contact-details { display: flex; flex-direction: column; gap: 16px; }
+    .contact-detail {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      color: #d1d5db;
+      font-size: 14px;
+      transition: color 0.3s;
+    }
+    .contact-detail:hover { color: #fff; }
+    .contact-detail svg { color: #6b7280; }
+    .contact-form { flex: 1; display: flex; flex-direction: column; gap: 24px; }
+    .contact-form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+    .contact-input {
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      padding-bottom: 8px;
+      font-size: 14px;
+      color: #fff;
+      outline: none;
+      transition: border-color 0.3s;
+      width: 100%;
+    }
+    .contact-input::placeholder { color: #4b5563; }
+    .contact-input:focus { border-color: #f472b6; }
+    .contact-textarea {
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid rgba(255,255,255,0.2);
+      padding-bottom: 8px;
+      font-size: 14px;
+      color: #fff;
+      outline: none;
+      resize: none;
+      width: 100%;
+      transition: border-color 0.3s;
+    }
+    .contact-textarea::placeholder { color: #4b5563; }
+    .contact-textarea:focus { border-color: #f472b6; }
+    .contact-submit {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0.1);
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #fff;
+      padding: 14px 32px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.3s;
+      align-self: flex-start;
+      margin-top: 8px;
+    }
+    .contact-submit:hover { background: rgba(255,255,255,0.2); }
+
+    @media (max-width: 1024px) {
+      .contact-section { flex-direction: column; }
+      .contact-left { width: 100%; min-height: 200px; }
+      .contact-right { flex-direction: column; }
+    }
+    @media (max-width: 600px) {
+      .contact-form-row { grid-template-columns: 1fr; }
+    }
+
+    /* ========== FOOTER ========== */
+    .footer {
+      padding-top: 80px;
+      padding-bottom: 32px;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      justify-content: space-between;
+      gap: 48px;
+      flex-wrap: wrap;
+    }
+    .footer-brand { max-width: 280px; }
+    .footer-logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+    .footer-logo-icon {
+      width: 32px; height: 32px;
+      border-radius: 50%;
+      border: 1px solid #f472b6;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .footer-logo-inner {
+      width: 16px; height: 16px;
+      border-top: 2px solid #f472b6;
+      border-left: 2px solid #f472b6;
+      border-radius: 100% 0 0 0;
+    }
+    .footer-brand-name { font-size: 18px; font-weight: 600; letter-spacing: 0.15em; line-height: 1; }
+    .footer-brand-sub { font-size: 8px; color: #9ca3af; letter-spacing: 0.2em; margin-top: 4px; }
+    .footer-brand p {
+      font-size: 12px;
+      color: #6b7280;
+      line-height: 1.6;
+      margin-bottom: 12px;
+    }
+    .footer-copyright { font-size: 10px; color: #4b5563; }
+    .footer-explore h4 {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      color: #9ca3af;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+    .footer-links {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px 48px;
+      font-size: 12px;
+      color: #d1d5db;
+    }
+    .footer-links a { transition: color 0.3s; }
+    .footer-links a:hover { color: #fff; }
+    .footer-connect {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+    .footer-connect h4 {
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      color: #9ca3af;
+      text-transform: uppercase;
+      margin-bottom: 24px;
+    }
+    .footer-socials { display: flex; gap: 16px; }
+    .footer-social {
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      border: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #9ca3af;
+      transition: all 0.3s;
+    }
+    .footer-social:hover { color: #fff; background: rgba(255,255,255,0.05); }
+    .footer-legal {
+      display: flex;
+      gap: 24px;
+      font-size: 10px;
+      color: #4b5563;
+      margin-top: 48px;
+    }
+    .footer-legal a { transition: color 0.3s; }
+    .footer-legal a:hover { color: #9ca3af; }
+  </style>
+</head>
+<body>
+
+  <!-- Loader -->
+  <div class="loader" id="loader">
+    <div class="loader-bar-track">
+      <div class="loader-bar-fill" id="loaderFill"></div>
+    </div>
+    <div class="loader-text" id="loaderText">Loading frames…</div>
+  </div>
+
+  <!-- Scroll-synced background canvas -->
+  <canvas id="canvas"></canvas>
+  <div class="canvas-overlay"></div>
+
+  <!-- Page content -->
+  <div class="content-wrapper">
+    <div class="container">
+
+      <!-- ============ NAVBAR ============ -->
+      <nav class="navbar">
+        <a href="/" class="navbar-logo">
+          <div class="navbar-logo-icon"><div class="navbar-logo-inner"></div></div>
+          <div class="navbar-brand">
+            <span class="navbar-brand-name">VYANA SOUL</span>
+            <span class="navbar-brand-sub">SOUL GUIDANCE</span>
+          </div>
+        </a>
+        <div class="navbar-links">
+          <a href="/" class="navbar-link-active"><span>Home</span><div class="navbar-link-dot"></div></a>
+          <a href="/about">About</a>
+          <a href="/consultancy">Consultancy</a>
+          <a href="/courses">Courses</a>
+          <a href="/gallery">Gallery</a>
+          <a href="/reviews">Reviews</a>
+          <a href="/faq">FAQ</a>
+          <a href="/blog">Blog</a>
+        </div>
+        <a href="/contact" class="navbar-cta">Book a Consultation</a>
+      </nav>
+
+      <main class="main-content">
+
+        <!-- ============ HERO ============ -->
+        <section class="hero section-reveal">
+          <div class="hero-left">
+            <div class="hero-tag">| AKASHIC RECORDS &amp; HEALING |</div>
+            <h1>Unlock the wisdom of<br>your soul for profound <span class="font-serif-italic text-pink">healing.</span></h1>
+            <p class="hero-desc">I help you navigate your life's journey through Akashic Records reading, Pranic Healing, and Lama Fera—bringing clarity, purpose, and energetic balance.</p>
+            <div class="hero-buttons">
+              <a href="/consultancy" class="btn-primary">
+                BOOK A SESSION
+                <!-- Arrow Right -->
+                <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+              </a>
+              <a href="/about" class="btn-outline">
+                ABOUT REKHA
+                <!-- User -->
+                <svg class="icon" viewBox="0 0 24 24"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </a>
+            </div>
+            <div class="hero-avail">
+              <div class="pulse-dot"></div>
+              <div class="hero-avail-text">
+                <strong>AVAILABLE FOR CONSULTATIONS</strong><br>
+                Let's discover your path.
+              </div>
+            </div>
+          </div>
+          <div class="hero-right">
+            <div class="hero-glow"></div>
+            <div class="hero-circle">
+              <div class="hero-circle-inner"></div>
+            </div>
+            <!-- Floating cards -->
+            <div class="float-card glass-panel float-card-guidance">
+              <div class="float-card-label">GUIDANCE</div>
+              <div class="float-card-text">with deep<br>empathy.</div>
+              <svg class="icon heart-icon-float" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+            </div>
+            <div class="float-card glass-panel float-card-founder">
+              <div class="float-card-label">FOUNDER</div>
+              <div class="float-card-founder-name">REKHA BALA</div>
+              <div class="float-card-founder-role">Spiritual Healer &amp;<br>Guide</div>
+            </div>
+            <div class="float-card glass-panel float-card-offerings">
+              <div class="float-card-label" style="margin-bottom:16px;">OFFERINGS</div>
+              <ul class="offerings-list">
+                <li><span class="offerings-dot"></span> Akashic Records</li>
+                <li><span class="offerings-dot"></span> Lama Fera Healing</li>
+                <li><span class="offerings-dot"></span> Pranic Healing</li>
+                <li><span class="offerings-dot"></span> Spiritual Courses</li>
+              </ul>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ CASE STUDIES / OFFERINGS ============ -->
+        <section class="section-reveal">
+          <div class="section-header section-header-row">
+            <div>
+              <div class="section-label">OUR OFFERINGS</div>
+              <h2 class="section-title">Guiding your soul<br>through <span class="font-serif-italic text-pink">meaningful</span> healing.</h2>
+            </div>
+            <a href="/consultancy" class="section-link">
+              VIEW ALL SERVICES
+              <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+          </div>
+          <div class="offerings-grid">
+            <!-- Card 1 -->
+            <div class="offering-card glass-panel">
+              <div class="offering-image offering-image-1"><div class="offering-image-inner"></div></div>
+              <div>
+                <div class="offering-id">01</div>
+                <h3 class="offering-title">Akashic Records</h3>
+                <p class="offering-desc">Past Life Readings &amp; Soul Guidance</p>
+                <div class="offering-footer">
+                  <div class="offering-tags">
+                    <span class="offering-tag">Guidance</span>
+                    <span class="offering-tag">Clarity</span>
+                    <span class="offering-tag">Karma</span>
+                  </div>
+                  <a href="/consultancy" class="offering-arrow">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+            <!-- Card 2 -->
+            <div class="offering-card glass-panel">
+              <div class="offering-image offering-image-2"><div class="offering-image-inner"></div></div>
+              <div>
+                <div class="offering-id">02</div>
+                <h3 class="offering-title">Lama Fera</h3>
+                <p class="offering-desc">Powerful Energy Healing Technique</p>
+                <div class="offering-footer">
+                  <div class="offering-tags">
+                    <span class="offering-tag">Healing</span>
+                    <span class="offering-tag">Energy</span>
+                    <span class="offering-tag">Balance</span>
+                  </div>
+                  <a href="/consultancy" class="offering-arrow">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+            <!-- Card 3 -->
+            <div class="offering-card glass-panel">
+              <div class="offering-image offering-image-3"><div class="offering-image-inner"></div></div>
+              <div>
+                <div class="offering-id">03</div>
+                <h3 class="offering-title">Pranic Healing</h3>
+                <p class="offering-desc">Holistic Wellness &amp; Vitality</p>
+                <div class="offering-footer">
+                  <div class="offering-tags">
+                    <span class="offering-tag">Wellness</span>
+                    <span class="offering-tag">Prana</span>
+                    <span class="offering-tag">Vitality</span>
+                  </div>
+                  <a href="/consultancy" class="offering-arrow">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ SERVICES ============ -->
+        <section class="section-reveal">
+          <div class="services-row">
+            <div class="services-left">
+              <div class="section-header">
+                <div class="section-label">HEALING MODALITIES</div>
+                <h2 class="section-title" style="max-width:480px;">Deep spiritual guidance tailored to your soul's journey.</h2>
+              </div>
+              <div class="services-grid">
+                <!-- Compass -->
+                <div>
+                  <div class="service-icon-box">
+                    <svg class="icon icon-lg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+                  </div>
+                  <h3 class="service-name">AKASHIC RECORDS</h3>
+                  <p class="service-desc">Access the energetic archive of your soul's past, present, and future.</p>
+                </div>
+                <!-- Sparkles -->
+                <div>
+                  <div class="service-icon-box">
+                    <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
+                  </div>
+                  <h3 class="service-name">PRANIC HEALING</h3>
+                  <p class="service-desc">A powerful no-touch energy healing system that utilizes prana to balance the body.</p>
+                </div>
+                <!-- Brain -->
+                <div>
+                  <div class="service-icon-box">
+                    <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z"/><path d="M12 5a3 3 0 1 1 5.997.125 4 4 0 0 1 2.526 5.77 4 4 0 0 1-.556 6.588A4 4 0 1 1 12 18Z"/><path d="M15 13a4.5 4.5 0 0 1-3-4 4.5 4.5 0 0 1-3 4"/><path d="M17.599 6.5a3 3 0 0 0 .399-1.375"/><path d="M6.003 5.125A3 3 0 0 0 6.401 6.5"/><path d="M3.477 10.896a4 4 0 0 1 .585-.396"/><path d="M19.938 10.5a4 4 0 0 1 .585.396"/><path d="M6 18a4 4 0 0 1-1.967-.516"/><path d="M19.967 17.484A4 4 0 0 1 18 18"/></svg>
+                  </div>
+                  <h3 class="service-name">LAMA FERA</h3>
+                  <p class="service-desc">A highly effective Buddhist healing technique used to release negative energy.</p>
+                </div>
+                <!-- Book -->
+                <div>
+                  <div class="service-icon-box">
+                    <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                  </div>
+                  <h3 class="service-name">SPIRITUAL COURSES</h3>
+                  <p class="service-desc">Empower yourself with comprehensive workshops and structured spiritual programs.</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Areas of Focus panel -->
+            <div class="tools-panel glass-panel">
+              <h3>AREAS OF FOCUS</h3>
+              <div class="tools-grid">
+                <div class="tool-item"><div class="tool-icon-box tool-pink"><div class="tool-icon-inner">K</div></div><span class="tool-name">Karma</span></div>
+                <div class="tool-item"><div class="tool-icon-box tool-yellow"><div class="tool-icon-inner">R</div></div><span class="tool-name">Relationships</span></div>
+                <div class="tool-item"><div class="tool-icon-box tool-purple"><div class="tool-icon-inner">H</div></div><span class="tool-name">Health</span></div>
+                <div class="tool-item"><div class="tool-icon-box tool-blue"><div class="tool-icon-inner">F</div></div><span class="tool-name">Finance</span></div>
+                <div class="tool-item"><div class="tool-icon-box tool-orange"><div class="tool-icon-inner">C</div></div><span class="tool-name">Career</span></div>
+                <div class="tool-item"><div class="tool-icon-box tool-violet"><div class="tool-icon-inner">L</div></div><span class="tool-name">Life Purpose</span></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ PROCESS ============ -->
+        <section class="section-reveal">
+          <div class="section-header">
+            <div class="section-label">THE HEALING JOURNEY</div>
+            <h2 class="section-title">A soul-centered approach<br>to personal transformation.</h2>
+          </div>
+          <div class="process-steps">
+            <div class="process-line"></div>
+            <div class="process-grid">
+              <!-- Step 1 -->
+              <div class="process-step">
+                <div class="process-icon-box">
+                  <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                </div>
+                <div class="process-step-header">
+                  <span class="process-step-num">01</span>
+                  <h3 class="process-step-name">BOOK</h3>
+                </div>
+                <p class="process-step-desc">Schedule your session and prepare your mind.</p>
+              </div>
+              <!-- Step 2 -->
+              <div class="process-step">
+                <div class="process-icon-box">
+                  <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+                </div>
+                <div class="process-step-header">
+                  <span class="process-step-num">02</span>
+                  <h3 class="process-step-name">CONNECT</h3>
+                </div>
+                <p class="process-step-desc">Establish an energetic connection and set intentions.</p>
+              </div>
+              <!-- Step 3 -->
+              <div class="process-step">
+                <div class="process-icon-box">
+                  <svg class="icon icon-lg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+                </div>
+                <div class="process-step-header">
+                  <span class="process-step-num">03</span>
+                  <h3 class="process-step-name">READING</h3>
+                </div>
+                <p class="process-step-desc">Access your Akashic Records for deep soul insights.</p>
+              </div>
+              <!-- Step 4 -->
+              <div class="process-step">
+                <div class="process-icon-box">
+                  <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>
+                </div>
+                <div class="process-step-header">
+                  <span class="process-step-num">04</span>
+                  <h3 class="process-step-name">HEALING</h3>
+                </div>
+                <p class="process-step-desc">Clear karmic blockages and restore energetic balance.</p>
+              </div>
+              <!-- Step 5 -->
+              <div class="process-step">
+                <div class="process-icon-box">
+                  <svg class="icon icon-lg" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>
+                </div>
+                <div class="process-step-header">
+                  <span class="process-step-num">05</span>
+                  <h3 class="process-step-name">INTEGRATE</h3>
+                </div>
+                <p class="process-step-desc">Absorb the guidance and apply it to your daily life.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ TESTIMONIALS ============ -->
+        <section class="section-reveal">
+          <div class="section-header section-header-row">
+            <div>
+              <div class="section-label">CLIENT REVIEWS</div>
+              <h2 class="section-title">Transformative experiences shared<br>by beautiful souls.</h2>
+            </div>
+            <a href="/reviews" class="section-link">
+              VIEW ALL REVIEWS
+              <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </a>
+          </div>
+          <div class="testimonials-grid">
+            <div class="testimonial-card glass-panel">
+              <svg class="testimonial-quote-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg>
+              <p class="testimonial-text">"The Akashic Records reading brought so much clarity to my life path. Rekha's deep insight helped me understand my recurring patterns and release them."</p>
+              <div class="testimonial-author">
+                <div class="testimonial-avatar testimonial-avatar-1"></div>
+                <div>
+                  <div class="testimonial-name">CLIENT REVIEW</div>
+                  <div class="testimonial-role">Akashic Records Reading</div>
+                </div>
+              </div>
+            </div>
+            <div class="testimonial-card glass-panel">
+              <svg class="testimonial-quote-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg>
+              <p class="testimonial-text">"My Pranic Healing sessions have been truly transformative. I feel lighter, more grounded, and completely aligned with my true self."</p>
+              <div class="testimonial-author">
+                <div class="testimonial-avatar testimonial-avatar-2"></div>
+                <div>
+                  <div class="testimonial-name">CLIENT REVIEW</div>
+                  <div class="testimonial-role">Pranic Healing</div>
+                </div>
+              </div>
+            </div>
+            <div class="testimonial-card glass-panel">
+              <svg class="testimonial-quote-icon" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M3 21c3 0 7-1 7-8V5c0-1.25-.756-2.017-2-2H4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2 1 0 1 0 1 1v1c0 1-1 2-2 2s-1 .008-1 1.031V20c0 1 0 1 1 1z"/><path d="M15 21c3 0 7-1 7-8V5c0-1.25-.757-2.017-2-2h-4c-1.25 0-2 .75-2 1.972V11c0 1.25.75 2 2 2h.75c0 2.25.25 4-2.75 4v3c0 1 0 1 1 1z"/></svg>
+              <p class="testimonial-text">"Rekha is a gifted soul guide. Her empathy and intuition create a safe space for deep healing and spiritual awakening."</p>
+              <div class="testimonial-author">
+                <div class="testimonial-avatar testimonial-avatar-3"></div>
+                <div>
+                  <div class="testimonial-name">CLIENT REVIEW</div>
+                  <div class="testimonial-role">Spiritual Guidance</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ============ CONTACT ============ -->
+        <section class="section-reveal">
+          <div class="contact-section glass-panel">
+            <div class="contact-left">
+              <div class="contact-left-overlay"></div>
+              <div class="contact-left-glow-1"></div>
+              <div class="contact-left-glow-2"></div>
+              <div class="contact-left-text">BEGIN YOUR JOURNEY</div>
+            </div>
+            <div class="contact-right">
+              <div class="contact-info">
+                <div class="contact-info-label">READY FOR GUIDANCE?</div>
+                <h2>Start your journey toward<br><span class="font-serif-italic text-pink">healing</span> and clarity.</h2>
+                <div class="contact-details">
+                  <a href="mailto:info@vyanasoul.com" class="contact-detail">
+                    <svg class="icon" viewBox="0 0 24 24"><rect width="20" height="16" x="2" y="4" rx="2"/><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/></svg>
+                    info@vyanasoul.com
+                  </a>
+                  <div class="contact-detail">
+                    <svg class="icon" viewBox="0 0 24 24"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                    Online Sessions Available Worldwide
+                  </div>
+                </div>
+              </div>
+              <form class="contact-form" onsubmit="event.preventDefault()">
+                <div class="contact-form-row">
+                  <input type="text" placeholder="Your Name" class="contact-input">
+                  <input type="email" placeholder="Your Email" class="contact-input">
+                </div>
+                <textarea placeholder="Tell me what you are seeking guidance on..." rows="4" class="contact-textarea"></textarea>
+                <button type="submit" class="contact-submit">
+                  REQUEST CONSULTATION
+                  <svg class="icon" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </button>
+              </form>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- ============ FOOTER ============ -->
+      <footer class="footer section-reveal">
+        <div class="footer-brand">
+          <div class="footer-logo">
+            <div class="footer-logo-icon"><div class="footer-logo-inner"></div></div>
+            <div>
+              <div class="footer-brand-name">VYANA SOUL</div>
+              <div class="footer-brand-sub">SOUL GUIDANCE</div>
+            </div>
+          </div>
+          <p>Illuminating your path through<br>spiritual wisdom and healing.</p>
+          <div class="footer-copyright">© 2024 Vyana Soul. All rights reserved.</div>
+        </div>
+        <div class="footer-explore">
+          <h4>EXPLORE</h4>
+          <div class="footer-links">
+            <a href="/">Home</a>
+            <a href="/about">About</a>
+            <a href="/consultancy">Consultancy</a>
+            <a href="/courses">Courses</a>
+            <a href="/gallery">Gallery</a>
+            <a href="/reviews">Reviews</a>
+            <a href="/faq">FAQ</a>
+            <a href="/contact">Contact</a>
+            <a href="/blog">Blog</a>
+          </div>
+        </div>
+        <div class="footer-connect">
+          <div>
+            <h4>LET'S CONNECT</h4>
+            <div class="footer-socials">
+              <a href="#" class="footer-social">
+                <!-- Youtube -->
+                <svg class="icon" viewBox="0 0 24 24"><path d="M2.5 17a24.12 24.12 0 0 1 0-10 2 2 0 0 1 1.4-1.4 49.56 49.56 0 0 1 16.2 0A2 2 0 0 1 21.5 7a24.12 24.12 0 0 1 0 10 2 2 0 0 1-1.4 1.4 49.55 49.55 0 0 1-16.2 0A2 2 0 0 1 2.5 17"/><path d="m10 15 5-3-5-3z"/></svg>
+              </a>
+              <a href="#" class="footer-social">
+                <!-- Facebook -->
+                <svg class="icon" viewBox="0 0 24 24"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg>
+              </a>
+              <a href="#" class="footer-social">
+                <!-- Instagram -->
+                <svg class="icon" viewBox="0 0 24 24"><rect width="20" height="20" x="2" y="2" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
+              </a>
+            </div>
+          </div>
+          <div class="footer-legal">
+            <a href="#">Privacy Policy</a>
+            <a href="#">Terms &amp; Conditions</a>
+          </div>
+        </div>
+      </footer>
+
+    </div>
+  </div>
+
+  <script>
+    // ============ SCROLL-BASED FRAME ANIMATION ============
+    const FRAME_COUNT = 300;
+    const FRAME_PATH = (i) => `../frames/frame_${String(i).padStart(6, '0')}.jpg`;
+
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const loader = document.getElementById('loader');
+    const loaderFill = document.getElementById('loaderFill');
+    const loaderText = document.getElementById('loaderText');
+
+    // High-res canvas
+    canvas.width = 1280;
+    canvas.height = 720;
+
+    const images = new Array(FRAME_COUNT);
+    let loadedCount = 0;
+    let allLoaded = false;
+
+    function preloadImages() {
+      return new Promise((resolve) => {
+        for (let i = 0; i < FRAME_COUNT; i++) {
+          const img = new Image();
+          img.src = FRAME_PATH(i + 1);
+          img.onload = img.onerror = () => {
+            loadedCount++;
+            const pct = Math.round((loadedCount / FRAME_COUNT) * 100);
+            loaderFill.style.width = pct + '%';
+            loaderText.textContent = `Loading frames… ${pct}%`;
+            if (loadedCount === FRAME_COUNT) {
+              allLoaded = true;
+              resolve();
+            }
+          };
+          images[i] = img;
+        }
+      });
+    }
+
+    function drawFrame(index) {
+      const img = images[index];
+      if (!img || !img.complete) return;
+
+      // Cover the canvas while maintaining aspect ratio
+      const cW = canvas.width, cH = canvas.height;
+      const iW = img.naturalWidth || img.width;
+      const iH = img.naturalHeight || img.height;
+      const scale = Math.max(cW / iW, cH / iH);
+      const dW = iW * scale, dH = iH * scale;
+      const dx = (cW - dW) / 2, dy = (cH - dH) / 2;
+
+      ctx.clearRect(0, 0, cW, cH);
+      ctx.drawImage(img, dx, dy, dW, dH);
+    }
+
+    let currentFrame = -1;
+
+    function onScroll() {
+      if (!allLoaded) return;
+
+      const scrollTop = window.scrollY;
+      const maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+      const scrollFraction = Math.min(Math.max(scrollTop / maxScroll, 0), 1);
+      const frameIndex = Math.min(
+        Math.floor(scrollFraction * FRAME_COUNT),
+        FRAME_COUNT - 1
+      );
+
+      if (frameIndex !== currentFrame) {
+        currentFrame = frameIndex;
+        requestAnimationFrame(() => drawFrame(frameIndex));
+      }
+    }
+
+    preloadImages().then(() => {
+      loader.classList.add('hidden');
+      drawFrame(0);
+      currentFrame = 0;
+      window.addEventListener('scroll', onScroll, { passive: true });
+    });
+
+    // ============ SECTION REVEAL ON SCROLL ============
+    const revealSections = document.querySelectorAll('.section-reveal');
+    const revealObserver = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('visible');
+        }
+      });
+    }, { threshold: 0.08 });
+
+    revealSections.forEach(section => revealObserver.observe(section));
+  </script>
+</body>
+</html>

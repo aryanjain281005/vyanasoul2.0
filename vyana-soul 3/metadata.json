@@ -1,0 +1,6 @@
+{
+  "name": "Vyana Soul",
+  "description": "Akashic Records, Soul Guidance, and Spiritual Healing consultancy by Rekha Bala.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
