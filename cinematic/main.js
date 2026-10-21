@@ -361,6 +361,7 @@
       sentH: "Request sent",
       sentMsg: "Rekha will confirm within 24 hours on WhatsApp or by email, with your time, payment details and a short guide to prepare.",
       sentOpen: "Message Rekha on WhatsApp", another: "Send another request",
+      testMsg: "This is the preview site, so the request was checked but not sent to Rekha. On www.vyanasoul.com it reaches her straight away.",
       failH: "Send your request on WhatsApp instead",
       failMsg: "We couldn't reach the booking system just now, so this request wasn't sent. It's ready below: open WhatsApp, press send, and Rekha will confirm within 24 hours.",
       rateMsg: "Several requests came from this connection in the last few minutes, so this one wasn't saved. If it's a new request, send it on WhatsApp instead.",
@@ -393,6 +394,7 @@
       sentH: "अनुरोध भेज दिया गया",
       sentMsg: "रेखा जी 24 घंटे के भीतर WhatsApp या ईमेल पर आपका समय, भुगतान की जानकारी और तैयारी की छोटी गाइड भेजकर पुष्टि करेंगी।",
       sentOpen: "रेखा जी को WhatsApp करें", another: "एक और अनुरोध भेजें",
+      testMsg: "यह वेबसाइट का प्रीव्यू है, इसलिए अनुरोध की जाँच हुई पर यह रेखा जी तक नहीं भेजा गया। www.vyanasoul.com पर यह तुरंत उन तक पहुँचता है।",
       failH: "यह अनुरोध WhatsApp से भेजें",
       failMsg: "अभी बुकिंग सिस्टम तक नहीं पहुँच पाए, इसलिए यह अनुरोध नहीं भेजा गया। अनुरोध नीचे तैयार है: WhatsApp खोलें और भेजें, रेखा जी 24 घंटे में पुष्टि करेंगी।",
       rateMsg: "पिछले कुछ मिनटों में इस कनेक्शन से कई अनुरोध आए हैं, इसलिए यह सेव नहीं हुआ। अगर यह नया अनुरोध है, तो इसे WhatsApp से भेजें।",
@@ -418,6 +420,7 @@
   const meta = (n) => (document.querySelector(`meta[name="${n}"]`)?.content || "").trim();
   const ENDPOINT = meta("vs-booking-endpoint");
   const SITEKEY = meta("vs-turnstile-sitekey");
+  const TEST_MODE = meta("vs-booking-mode") === "test"; // preview site: checked by the function, never saved
 
   const form = document.getElementById("book-form");
   const F = form.elements;
@@ -636,11 +639,11 @@
       const res = await fetch(ENDPOINT, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...v, timezone: TZ, locale: PAGE_LANG, turnstileToken: token }),
+        body: JSON.stringify({ ...v, timezone: TZ, locale: PAGE_LANG, turnstileToken: token, ...(TEST_MODE ? { test: true } : {}) }),
         signal: ctrl.signal,
       });
       const out = await res.json().catch(() => ({}));
-      if (res.status === 201 && out.ref) return { kind: "sent", ref: out.ref };
+      if (res.status === 201 && out.ref) return { kind: "sent", ref: out.ref, test: !!out.test };
       if (res.status === 422 && out.fields) return { kind: "invalid", fields: out.fields };
       return { kind: "failed", reason: res.status === 429 ? "rate" : "error" };
     } catch (e) {
@@ -711,7 +714,7 @@
       lastText = message(v, result.ref);
       document.getElementById("done-ref-code").textContent = result.ref;
       doneH.textContent = T.sentH;
-      doneMsg.textContent = T.sentMsg;
+      doneMsg.textContent = result.test ? T.testMsg : T.sentMsg;
       doneOpen.href = WA + encodeURIComponent(T.msgAfter(result.ref));
       setLabel(doneOpen, T.sentOpen);
       setLabel(doneEdit, T.another);

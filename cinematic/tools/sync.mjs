@@ -48,5 +48,16 @@ const reviews = rows
   .filter((r) => r.name && r.text)
   .sort((a, b) => (b.featured - a.featured) || (a.sortOrder - b.sortOrder) || (a.createdAt < b.createdAt ? 1 : -1));
 
+// Until the launch migration adds them, keep the four reviews the site showed before they
+// were in the database (data/reviews-seed.json), so a sync never drops them
+const seed = JSON.parse(fs.readFileSync(new URL("../data/reviews-seed.json", import.meta.url), "utf8")).reviews;
+const names = new Set(reviews.map((r) => r.name));
+const missingSeed = seed.filter((r) => !names.has(r.name));
+if (missingSeed.length) {
+  reviews.unshift(...missingSeed);
+  reviews.sort((a, b) => (b.featured - a.featured) || (a.sortOrder - b.sortOrder) || (a.createdAt < b.createdAt ? 1 : -1));
+  console.log(`Kept ${missingSeed.length} reviews from data/reviews-seed.json (not in the database yet)`);
+}
+
 fs.writeFileSync(out, JSON.stringify({ syncedAt: new Date().toISOString(), reviews }, null, 2) + "\n");
 console.log(`Saved ${reviews.length} published reviews (${reviews.filter((r) => r.featured).length} featured) to data/reviews.json`);

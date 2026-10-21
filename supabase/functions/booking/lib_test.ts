@@ -1,5 +1,5 @@
 import { assert, assertEquals, assertMatch } from "jsr:@std/assert@1.0.8";
-import { clientEmail, escapeHtml, makeRef, ownerEmail, telegramText, timeWindow, todayIST, validate, weekdayOf } from "./lib.ts";
+import { clientEmail, escapeHtml, makeRef, ownerEmail, telegramText, timeWindow, todayIST, validate, waDigits, weekdayOf } from "./lib.ts";
 
 const NOW = new Date("2026-10-22T06:00:00Z"); // 11:30 IST
 const base = { name: "Asha Verma", phone: "+91 98765 43210", service: "akashic", locale: "en" };
@@ -98,4 +98,11 @@ Deno.test("emails are plain text in the visitor's language", () => {
   assert(hi.text.startsWith("नमस्ते"));
   const en = clientEmail({ ...row, locale: "en" }, "https://www.vyanasoul.com", "919987487242");
   assert(en.text.includes("Your reference is VS-ABCDE"));
+});
+
+Deno.test("WhatsApp links get the country code", () => {
+  assertEquals(waDigits("98765 43210"), "919876543210");
+  assertEquals(waDigits("098765 43210"), "919876543210");
+  assertEquals(waDigits("+1 (415) 555-0101"), "14155550101");
+  assertEquals(waDigits(""), "");
 });

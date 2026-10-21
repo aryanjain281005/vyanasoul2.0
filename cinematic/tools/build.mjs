@@ -153,6 +153,7 @@ function page(file, lang, { reviewsBlock = false, alternates = true, jsonld = fa
     }
   }
   headTags(root, lang, file === "index.html" ? "" : file, { alternates, jsonld, indexable });
+  if (target.testBookings) root.querySelector('meta[name="vs-booking-endpoint"]')?.insertAdjacentHTML("afterend", '\n  <meta name="vs-booking-mode" content="test">');
   const bad = brokenAnchors(root);
   if (bad.length) problems.push(`${file} (${lang}): links to missing sections #${bad.join(", #")}`);
   const out = path.join(DIST, lang === "hi" ? "hi" : "", file);

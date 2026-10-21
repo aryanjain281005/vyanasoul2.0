@@ -164,6 +164,14 @@ export function serviceLabel(stored: string): string {
 
 const LANG = { en: "English", hi: "Hindi" } as Record<string, string>;
 
+/** Number for a wa.me link: international digits, with 91 added to Indian numbers typed without it. */
+export function waDigits(phone: string | null | undefined): string {
+  const d = (phone || "").replace(/\D/g, "");
+  if (d.length === 10) return "91" + d;
+  if (d.length === 11 && d.startsWith("0")) return "91" + d.slice(1);
+  return d;
+}
+
 export function telegramText(r: RequestRow, retry = false): string {
   const e = (v: string | null | undefined) => escapeHtml(v || "");
   const lines = [
@@ -178,7 +186,7 @@ export function telegramText(r: RequestRow, retry = false): string {
     r.country ? `<b>Country:</b> ${e(r.country)}${r.timezone ? ` (${e(r.timezone)})` : ""}` : null,
     r.session_language ? `<b>Session in:</b> ${e(LANG[r.session_language] || r.session_language)}` : null,
     r.message ? `\n<b>What they'd like to explore:</b>\n${e(r.message)}` : null,
-    r.phone ? `\n<a href="https://wa.me/${r.phone.replace(/\D/g, "")}">Reply on WhatsApp</a>` : null,
+    r.phone ? `\n<a href="https://wa.me/${waDigits(r.phone)}">Reply on WhatsApp</a>` : null,
   ];
   return lines.filter((l) => l !== null).join("\n");
 }

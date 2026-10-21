@@ -119,8 +119,8 @@ The frontend makes some content choices that the spec flagged as unconfirmed. Th
 
 | Package | Status |
 |---|---|
-| WP1 Database migration | Written: `supabase/migrations/20261022000000_v2_foundation.sql`. **Not applied yet**; waiting for approval. |
-| WP2 Booking function | Written and type-checked, with 11 unit tests passing (`deno test`). **Not deployed yet.** |
+| WP1 Database migration | **Applied to the live project** on 22 October. Additive only; v1 endpoints checked afterwards and return the same data. The four seed reviews are in `supabase/launch/`, to run at cut-over (the v1 site lists every review row). |
+| WP2 Booking function | **Deployed** as `booking` (v1). 12 unit tests pass. Checked live: CORS allow-list, validation (422), test mode and honeypot store nothing. Telegram and email are skipped until the secrets are set. |
 | WP3 Booking form | Done. Posts to the function and falls back to WhatsApp. Adds country, session language, the visitor's local times and a honeypot. Tested in the browser against a mock: success, server error, rate limit, server-side validation, "send another". |
 | WP4 Build, SEO, Hindi | Done. `npm run build[:prod]`, `check` and `sync`; `/hi/` with 265 translated strings; canonical, hreflang, JSON-LD, robots, sitemap, llms.txt; privacy and 404 pages. |
 | WP5 Admin | Done. `/admin/` covers requests, messages and reviews. Tested against a mocked database; needs a real sign-in once the migration is applied. |

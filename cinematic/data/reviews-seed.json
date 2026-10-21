@@ -1,0 +1,57 @@
+{
+  "note": "The four reviews the site showed before they were in the database. tools/sync.mjs keeps them until supabase/launch/20261022000100_launch_seed_reviews.sql has added them.",
+  "reviews": [
+    {
+      "id": "seed-1",
+      "name": "Mr. Rudra",
+      "location": "Mumbai",
+      "service": "Healing and guidance session",
+      "rating": 5,
+      "text": "When my father fell critically ill, a friend suggested I connect with Rekhaji for an Akashic reading. I was sceptical but desperate. What I experienced was beyond words: things so accurate, so personal, that I had no explanation. I followed every piece of her guidance with faith. And then something we were all praying for happened. My father survived.",
+      "short": "When my father fell critically ill, a friend suggested I connect with Rekhaji for an Akashic reading. I was sceptical but desperate. What I experienced was beyond words: things so accurate, so personal, that I had no explanation. I followed every piece of her guidance with faith. And then something we were all praying for happened. My father survived.",
+      "language": "en",
+      "featured": true,
+      "sortOrder": 1,
+      "createdAt": "2026-05-01T00:00:00+00:00"
+    },
+    {
+      "id": "seed-2",
+      "name": "Ms. Soni",
+      "location": "Lucknow",
+      "service": "Akashic reading",
+      "rating": 5,
+      "text": "Ye mera first session tha aapke saath aur main bilkul satisfied hoon. Aapne har cheez ko bahut clarity aur patience ke saath samjhaya. Session ke baad mujhe bahut sukoon feel ho raha hai.",
+      "short": "Ye mera first session tha aapke saath aur main bilkul satisfied hoon. Aapne har cheez ko bahut clarity aur patience ke saath samjhaya. Session ke baad mujhe bahut sukoon feel ho raha hai.",
+      "language": "hinglish",
+      "featured": true,
+      "sortOrder": 2,
+      "createdAt": "2026-05-01T00:00:00+00:00"
+    },
+    {
+      "id": "seed-3",
+      "name": "Ms. Nayana",
+      "location": "Amravati",
+      "service": "Personal consultation",
+      "rating": 5,
+      "text": "She earnestly answered all my queries in a prompt and clear manner. Her patience and warmth made the entire session a truly comfortable and enlightening experience.",
+      "short": "She earnestly answered all my queries in a prompt and clear manner. Her patience and warmth made the entire session a truly comfortable and enlightening experience.",
+      "language": "en",
+      "featured": true,
+      "sortOrder": 3,
+      "createdAt": "2026-05-01T00:00:00+00:00"
+    },
+    {
+      "id": "seed-4",
+      "name": "Ms. Prachi",
+      "location": "Ranchi",
+      "service": "Reading and healing",
+      "rating": 5,
+      "text": "She not only helped me heal but also gave me simple, practical solutions. Whenever I am in a dilemma, she reaches out the same day. I feel truly thankful to have found her.",
+      "short": "She not only helped me heal but also gave me simple, practical solutions. Whenever I am in a dilemma, she reaches out the same day. I feel truly thankful to have found her.",
+      "language": "en",
+      "featured": true,
+      "sortOrder": 4,
+      "createdAt": "2026-05-01T00:00:00+00:00"
+    }
+  ]
+}

@@ -1,6 +1,7 @@
 // Vyana Soul booking function.
 //
-//   POST /booking          a session request from the site (public; validated, rate-limited)
+//   POST /booking          a session request from the site (public; validated, rate-limited;
+//                          { test: true } from the preview site is validated but not stored)
 //   POST /booking/resend   re-send the alerts for one request   (admin JWT)
 //   POST /booking/rebuild  trigger a production rebuild         (admin JWT)
 //
@@ -16,7 +17,9 @@ import {
 const env = (k: string) => Deno.env.get(k) ?? "";
 const SITE_URL = env("SITE_URL") || "https://www.vyanasoul.com";
 const WHATSAPP = env("OWNER_WHATSAPP") || "919987487242";
-const ALLOWED = env("ALLOWED_ORIGINS").split(",").map((s) => s.trim()).filter(Boolean);
+// Sites allowed to post requests; the defaults cover production and the GitHub Pages preview
+const ALLOWED = (env("ALLOWED_ORIGINS") || "https://www.vyanasoul.com,https://vyanasoul.com,https://aryanjain281005.github.io")
+  .split(",").map((s) => s.trim()).filter(Boolean);
 const RATE_LIMIT = 5; // requests per IP per 10 minutes
 
 const db: SupabaseClient = createClient(env("SUPABASE_URL"), env("SUPABASE_SERVICE_ROLE_KEY"), {
@@ -156,8 +159,10 @@ async function createRequest(req: Request): Promise<Response> {
   }
   // Pretend success to bots that fill the honeypot, and store nothing
   if (v.spam) return json(req, 201, { ref: makeRef() });
+  // Preview builds send test requests: validated like real ones, but never stored or alerted
+  if ((body as Record<string, unknown>)?.test === true) return json(req, 201, { ref: "VS-TEST0", test: true });
 
-  const ipHash = ip ? await sha256(env("IP_SALT") + ip) : null;
+  const ipHash = ip ? await sha256((env("IP_SALT") || "vyana-soul") + ip) : null;
   if (ipHash) {
     const { count } = await db.from("consultancy_requests").select("id", { count: "exact", head: true })
       .eq("ip_hash", ipHash).gte("created_at", new Date(Date.now() - 10 * 60 * 1000).toISOString());

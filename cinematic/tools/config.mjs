@@ -3,7 +3,8 @@
 
 export const TARGETS = {
   production: { url: "https://www.vyanasoul.com/", indexable: true },
-  preview: { url: "https://aryanjain281005.github.io/vyanasoul2.0/", indexable: false },
+  // the preview's booking form runs in test mode: requests are checked by the function but not saved
+  preview: { url: "https://aryanjain281005.github.io/vyanasoul2.0/", indexable: false, testBookings: true },
 };
 
 export const SUPABASE_URL = "https://xvdoutqezjsuogankqna.supabase.co";
