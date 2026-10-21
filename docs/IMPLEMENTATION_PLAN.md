@@ -125,4 +125,20 @@ The frontend makes some content choices that the spec flagged as unconfirmed. Th
 | WP4 Build, SEO, Hindi | Done. `npm run build[:prod]`, `check` and `sync`; `/hi/` with 265 translated strings; canonical, hreflang, JSON-LD, robots, sitemap, llms.txt; privacy and 404 pages. |
 | WP5 Admin | Done. `/admin/` covers requests, messages and reviews. Tested against a mocked database; needs a real sign-in once the migration is applied. |
 | WP6 Content | Reviews: 17 from the database plus the 4 hard-coded ones. Gallery: 10 photos moved off i.ibb.co into `assets/gallery/`, 3 shown on the page. Blog: nothing to move. |
-| WP7 Verification | Done locally. The end-to-end test against the deployed function is still to do. |
+| WP7 Verification | Done. Live end-to-end booking (22 Oct): the request was saved with the correct fields and time zone, and all 3 alerts were logged as skipped (no secrets yet). The test row was deleted. The GitHub Pages preview is published and its form reaches the function in test mode, storing nothing. |
+
+## 6. Still to do (needs the owner or developer)
+
+1. Revoke the old Telegram bot token in @BotFather (it's in the public v1 repo). Then set `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` and `IP_SALT` (see `supabase/README.md`).
+2. Sign in to `/admin/` once with a real admin account.
+3. Optional: Resend (emails), Cloudflare Turnstile, and a Vercel deploy hook for "Update the website".
+4. At launch:
+   - point the Vercel project for vyanasoul.com at `cinematic/`
+   - run `supabase/launch/20261022000100_launch_seed_reviews.sql`
+   - submit the sitemap in Search Console
+   - switch off the v1 function
+5. Get Rekha's sign-off on the content (section 4) and the Hindi translations.
+6. Older issues found in the database security check, left alone so the live v1 site isn't affected:
+   - `handle_new_user()` has no fixed search_path and can be called by anyone
+   - `rls_auto_enable()` can be called by anyone
+   - leaked-password protection is off
