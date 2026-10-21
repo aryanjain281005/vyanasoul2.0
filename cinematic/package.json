@@ -1,0 +1,26 @@
+{
+  "name": "vyana-soul-site",
+  "private": true,
+  "type": "module",
+  "description": "Vyana Soul website: static pages, a 3D scroll journey, and a build step for SEO and the Hindi page",
+  "scripts": {
+    "dev": "node tools/serve.mjs",
+    "sync": "node tools/sync.mjs",
+    "build": "node tools/build.mjs --target=preview",
+    "build:prod": "node tools/build.mjs --target=production",
+    "check": "node tools/check.mjs",
+    "build:3d": "esbuild src3d/app.js --bundle --minify --format=esm --target=es2020 --outfile=app3d.js",
+    "deploy:preview": "npm run build && node tools/deploy-preview.mjs",
+    "build:admin": "esbuild admin-src/admin.js --bundle --minify --format=esm --target=es2020 --outfile=admin/admin.js"
+  },
+  "devDependencies": {
+    "@fontsource/mukta": "^5.1.0",
+    "@supabase/supabase-js": "^2.117.2",
+    "esbuild": "0.25.12",
+    "node-html-parser": "6.1.13",
+    "three": "0.186.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

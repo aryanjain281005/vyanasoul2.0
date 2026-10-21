@@ -702,7 +702,9 @@ function boot() {
     w: (f.querySelector(".r-who") || f.querySelector("figcaption")).textContent.trim(),
     s: ((f.querySelector(".r-what") || {}).textContent || "").trim(),
   }));
-  REVIEWS.push({ q: "The records hold no judgement, only compassion and wisdom for your soul's highest good.", w: "Rekha Bala", s: "" });
+  // Rekha's own line from the page, so it follows the page language
+  const rekhaQuote = document.querySelector("#rekha blockquote p");
+  REVIEWS.push({ q: rekhaQuote ? rekhaQuote.textContent.trim() : "The records hold no judgement, only compassion and wisdom for your soul's highest good.", w: "Rekha Bala", s: "" });
   let reviewIdx = 0;
   const interactive = () => P < 0.2 && !pulled;
 
@@ -820,7 +822,8 @@ function boot() {
   /* ------------------------------------------------------------ loop */
   const pos = new THREE.Vector3(), look = new THREE.Vector3(), dir = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0), right = new THREE.Vector3();
   const loading = document.querySelector(".rail .loading");
-  if (loading) loading.textContent = "Building the library…";
+  // status words come from the page (data-building / data-ready), so the Hindi page has its own
+  if (loading) loading.textContent = loading.dataset.building || "Building the library…";
   let last = performance.now(), frameN = 0;
   let started = false, verySlow = 0;
   // switch to the video version for the rest of this visit (works inside embedded previews too)
@@ -977,7 +980,7 @@ function boot() {
     if (!started) {
       started = true;
       document.documentElement.classList.add("scene-ready");
-      if (loading) { loading.textContent = "The library is ready"; setTimeout(() => loading.classList.add("done"), 1200); }
+      if (loading) { loading.textContent = loading.dataset.ready || "The library is ready"; setTimeout(() => loading.classList.add("done"), 1200); }
     }
     if (recording || settled || frameN < 3) return;
     // adaptive resolution, judged over half-second windows

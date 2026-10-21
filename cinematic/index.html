@@ -11,6 +11,9 @@
   <meta property="og:image" content="assets/og.jpg">
   <meta property="og:type" content="website">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <!-- Booking requests go to this Supabase function; remove it and the form falls back to WhatsApp -->
+  <meta name="vs-booking-endpoint" content="https://xvdoutqezjsuogankqna.supabase.co/functions/v1/booking">
+  <meta name="vs-turnstile-sitekey" content="">
   <script>
     /* 3D library when WebGL2 is available; the graded video otherwise, for reduced motion, or with ?film */
     (function () {
@@ -55,6 +58,7 @@
       <a href="#reviews">Reviews</a>
       <a href="#faq">Questions</a>
     </nav>
+    <a class="lang-switch" href="hi/" hreflang="hi" lang="hi">हिन्दी</a>
     <a class="btn btn-primary btn-sm header-book" href="#book"><span>Book<span class="more"> a session</span></span></a>
     <button type="button" class="menu-btn" id="menu-btn" aria-expanded="false" aria-controls="menu" aria-label="Menu"><span class="bars" aria-hidden="true"></span></button>
   </header>
@@ -77,6 +81,7 @@
         <li><a class="contact-row" href="tel:+919987487242"><span class="ic-wrap"><svg class="ic" aria-hidden="true"><use href="#i-phone"/></svg></span><span class="cr-label">Call</span><span class="cr-value">+91 99874 87242</span></a></li>
       </ul>
       <p>Sessions Monday to Saturday, and Sunday by appointment. All times are IST.</p>
+      <a class="lang-switch" href="hi/" hreflang="hi" lang="hi">यह पेज हिन्दी में पढ़ें</a>
     </div>
   </div>
 
@@ -147,7 +152,7 @@
           <li><button type="button" data-go="0.67"><span class="deva" lang="sa" aria-hidden="true">उपचार</span><span class="lat">Healing</span></button></li>
           <li><button type="button" data-go="0.97"><span class="deva" lang="sa" aria-hidden="true">स्पष्टता</span><span class="lat">Clarity</span></button></li>
         </ol>
-        <p class="loading" aria-live="polite"><span id="load-pct">0</span>% of the film loaded</p>
+        <p class="loading" aria-live="polite" data-building="Building the library…" data-ready="The library is ready"><span id="load-pct">0</span>% of the film loaded</p>
       </nav>
     </section>
 
@@ -194,7 +199,7 @@
                   <div><dt>Length</dt><dd>30 minutes for a single question, or 60 to 90 minutes for a personal reading</dd></div>
                   <div><dt>Format</dt><dd>Online, by video call</dd></div>
                 </dl>
-                <a class="btn btn-outline" href="#book" data-service="Akashic Records reading">Book this session<span class="sr-only">: Akashic Records reading</span></a>
+                <a class="btn btn-outline" href="#book" data-service="akashic">Book this session<span class="sr-only">: Akashic Records reading</span></a>
               </div>
             </li>
             <li class="session-card">
@@ -207,7 +212,7 @@
                   <div><dt>Format</dt><dd>Online, by video call</dd></div>
                   <div><dt>Good to know</dt><dd>Often paired with an Akashic reading</dd></div>
                 </dl>
-                <a class="btn btn-outline" href="#book" data-service="Lama Fera healing">Book this session<span class="sr-only">: Lama Fera healing</span></a>
+                <a class="btn btn-outline" href="#book" data-service="lama-fera">Book this session<span class="sr-only">: Lama Fera healing</span></a>
               </div>
             </li>
             <li class="session-card">
@@ -220,7 +225,7 @@
                   <div><dt>Format</dt><dd>Online, by video call</dd></div>
                   <div><dt>Good to know</dt><dd>No physical contact is needed</dd></div>
                 </dl>
-                <a class="btn btn-outline" href="#book" data-service="Pranic Healing">Book this session<span class="sr-only">: Pranic Healing</span></a>
+                <a class="btn btn-outline" href="#book" data-service="pranic">Book this session<span class="sr-only">: Pranic Healing</span></a>
               </div>
             </li>
           </ul>
@@ -322,26 +327,28 @@
           <div class="section-head">
             <h2 id="reviews-h">In their words</h2>
           </div>
+          <!-- reviews:start (generated from data/reviews.json by tools/build.mjs) -->
           <figure class="review review-feature">
-            <blockquote>
+            <blockquote translate="no">
               <p>When my father fell critically ill, a friend suggested I connect with Rekhaji for an Akashic reading. I was sceptical but desperate. What I experienced was beyond words: things so accurate, so personal, that I had no explanation. I followed every piece of her guidance with faith. And then something we were all praying for happened. My father survived.</p>
             </blockquote>
-            <figcaption><span class="monogram" aria-hidden="true">R</span><span><span class="r-who">Mr. Rudra, Mumbai</span><span class="r-what">Healing and guidance session</span></span></figcaption>
+            <figcaption><span class="monogram" aria-hidden="true">R</span><span><span class="r-who" translate="no">Mr. Rudra, Mumbai</span><span class="r-what">Healing and guidance session</span></span></figcaption>
           </figure>
           <div class="review-grid">
             <figure class="review">
-              <blockquote lang="hi-Latn"><p>Ye mera first session tha aapke saath aur main bilkul satisfied hoon. Aapne har cheez ko bahut clarity aur patience ke saath samjhaya. Session ke baad mujhe bahut sukoon feel ho raha hai.</p></blockquote>
-              <figcaption><span class="monogram" aria-hidden="true">S</span><span><span class="r-who">Ms. Soni, Lucknow</span><span class="r-what">Akashic reading</span></span></figcaption>
+              <blockquote lang="hi-Latn" translate="no"><p>Ye mera first session tha aapke saath aur main bilkul satisfied hoon. Aapne har cheez ko bahut clarity aur patience ke saath samjhaya. Session ke baad mujhe bahut sukoon feel ho raha hai.</p></blockquote>
+              <figcaption><span class="monogram" aria-hidden="true">S</span><span><span class="r-who" translate="no">Ms. Soni, Lucknow</span><span class="r-what">Akashic reading</span></span></figcaption>
             </figure>
             <figure class="review">
-              <blockquote><p>She earnestly answered all my queries in a prompt and clear manner. Her patience and warmth made the entire session a truly comfortable and enlightening experience.</p></blockquote>
-              <figcaption><span class="monogram" aria-hidden="true">N</span><span><span class="r-who">Ms. Nayana, Amravati</span><span class="r-what">Personal consultation</span></span></figcaption>
+              <blockquote translate="no"><p>She earnestly answered all my queries in a prompt and clear manner. Her patience and warmth made the entire session a truly comfortable and enlightening experience.</p></blockquote>
+              <figcaption><span class="monogram" aria-hidden="true">N</span><span><span class="r-who" translate="no">Ms. Nayana, Amravati</span><span class="r-what">Personal consultation</span></span></figcaption>
             </figure>
             <figure class="review">
-              <blockquote><p>She not only helped me heal but also gave me simple, practical solutions. Whenever I am in a dilemma, she reaches out the same day. I feel truly thankful to have found her.</p></blockquote>
-              <figcaption><span class="monogram" aria-hidden="true">P</span><span><span class="r-who">Ms. Prachi, Ranchi</span><span class="r-what">Reading and healing</span></span></figcaption>
+              <blockquote translate="no"><p>She not only helped me heal but also gave me simple, practical solutions. Whenever I am in a dilemma, she reaches out the same day. I feel truly thankful to have found her.</p></blockquote>
+              <figcaption><span class="monogram" aria-hidden="true">P</span><span><span class="r-who" translate="no">Ms. Prachi, Ranchi</span><span class="r-what">Reading and healing</span></span></figcaption>
             </figure>
           </div>
+          <!-- reviews:end -->
         </div>
       </section>
 
@@ -351,6 +358,11 @@
           <img style="object-position:50% 30%" src="assets/meditation.webp" width="900" height="1200" loading="lazy" alt="Rekha meditating in a red salwar kameez">
           <img style="object-position:50% 35%" src="assets/podcast.webp" width="1192" height="960" loading="lazy" alt="Rekha in conversation on a podcast set">
           <img style="object-position:50% 25%" src="assets/meditation-2.webp" width="602" height="850" loading="lazy" alt="Rekha meditating in front of a red wall">
+        </div>
+        <div class="moment-strip moment-strip-2">
+          <img style="object-position:50% 40%" src="assets/gallery/session-3.webp" width="1280" height="960" loading="lazy" alt="Rekha during an online reading, speaking to a client on her laptop">
+          <img style="object-position:50% 45%" src="assets/gallery/meditation-3.webp" width="1280" height="960" loading="lazy" alt="Rekha meditating in an armchair, eyes closed">
+          <img style="object-position:50% 55%" src="assets/gallery/podcast-with-host.webp" width="1434" height="914" loading="lazy" alt="Rekha in conversation with a host on a podcast set">
         </div>
       </section>
 
@@ -412,35 +424,73 @@
             <form class="book-form" id="book-form" novalidate>
               <div class="book-card-head">
                 <h3>Your request</h3>
-                <p>Takes about a minute. Only your name and a session are needed.</p>
+                <p>Takes about a minute. You need your name, a session and one way for Rekha to reach you.</p>
               </div>
               <div class="field">
                 <label for="f-name">Your name</label>
-                <input id="f-name" name="name" autocomplete="name" required aria-describedby="e-name">
+                <input id="f-name" name="name" autocomplete="name" required maxlength="80" aria-describedby="e-name">
                 <p class="field-error" id="e-name" hidden><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span></span></p>
               </div>
-              <div class="field-row">
-                <div class="field">
-                  <label for="f-phone">WhatsApp number <span class="opt">optional</span></label>
-                  <input id="f-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" placeholder="+91 98765 43210" aria-describedby="e-phone">
-                  <p class="field-error" id="e-phone" hidden><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span></span></p>
+              <div class="field-group">
+                <div class="field-row">
+                  <div class="field">
+                    <label for="f-phone">WhatsApp number</label>
+                    <input id="f-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="32" placeholder="+91 98765 43210" aria-describedby="h-contact e-phone e-contact">
+                    <p class="field-error" id="e-phone" hidden><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span></span></p>
+                  </div>
+                  <div class="field">
+                    <label for="f-email">Email</label>
+                    <input id="f-email" name="email" type="email" autocomplete="email" maxlength="254" placeholder="you@example.com" aria-describedby="h-contact e-email e-contact">
+                    <p class="field-error" id="e-email" hidden><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span></span></p>
+                  </div>
                 </div>
-                <div class="field">
-                  <label for="f-email">Email <span class="opt">optional</span></label>
-                  <input id="f-email" name="email" type="email" autocomplete="email" placeholder="you@example.com" aria-describedby="e-email">
-                  <p class="field-error" id="e-email" hidden><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span></span></p>
-                </div>
+                <p class="field-hint" id="h-contact">Either one is enough.</p>
+                <p class="field-error" id="e-contact" hidden><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span></span></p>
               </div>
               <fieldset class="field">
                 <legend>Which session?</legend>
                 <div class="choices choices-service">
-                  <label class="choice"><input type="radio" name="service" value="Akashic Records reading" required aria-describedby="e-service"><span class="choice-title">Akashic Records reading</span><span class="choice-hint">30 to 90 minutes</span></label>
-                  <label class="choice"><input type="radio" name="service" value="Lama Fera healing" aria-describedby="e-service"><span class="choice-title">Lama Fera healing</span><span class="choice-hint">Often paired with a reading</span></label>
-                  <label class="choice"><input type="radio" name="service" value="Pranic Healing" aria-describedby="e-service"><span class="choice-title">Pranic Healing</span><span class="choice-hint">No-touch energy healing</span></label>
-                  <label class="choice"><input type="radio" name="service" value="Not sure yet" aria-describedby="e-service"><span class="choice-title">Not sure yet</span><span class="choice-hint">Rekha will suggest one</span></label>
+                  <label class="choice"><input type="radio" name="service" value="akashic" required aria-describedby="e-service"><span class="choice-title">Akashic Records reading</span><span class="choice-hint">30 to 90 minutes</span></label>
+                  <label class="choice"><input type="radio" name="service" value="lama-fera" aria-describedby="e-service"><span class="choice-title">Lama Fera healing</span><span class="choice-hint">Often paired with a reading</span></label>
+                  <label class="choice"><input type="radio" name="service" value="pranic" aria-describedby="e-service"><span class="choice-title">Pranic Healing</span><span class="choice-hint">No-touch energy healing</span></label>
+                  <label class="choice"><input type="radio" name="service" value="not-sure" aria-describedby="e-service"><span class="choice-title">Not sure yet</span><span class="choice-hint">Rekha will suggest one</span></label>
                 </div>
                 <p class="field-error" id="e-service" hidden><svg class="ic" aria-hidden="true"><use href="#i-alert"/></svg><span></span></p>
               </fieldset>
+              <div class="field-row">
+                <div class="field">
+                  <label for="f-country">Where you live</label>
+                  <select id="f-country" name="country" autocomplete="country-name">
+                    <option value="India">India</option>
+                    <option value="United States">United States</option>
+                    <option value="United Kingdom">United Kingdom</option>
+                    <option value="Canada">Canada</option>
+                    <option value="Australia">Australia</option>
+                    <option value="United Arab Emirates">United Arab Emirates</option>
+                    <option value="Singapore">Singapore</option>
+                    <option value="New Zealand">New Zealand</option>
+                    <option value="Nepal">Nepal</option>
+                    <option value="Germany">Germany</option>
+                    <option value="Netherlands">Netherlands</option>
+                    <option value="Ireland">Ireland</option>
+                    <option value="Saudi Arabia">Saudi Arabia</option>
+                    <option value="Qatar">Qatar</option>
+                    <option value="Kuwait">Kuwait</option>
+                    <option value="Oman">Oman</option>
+                    <option value="Malaysia">Malaysia</option>
+                    <option value="South Africa">South Africa</option>
+                    <option value="Mauritius">Mauritius</option>
+                    <option value="Other">Another country</option>
+                  </select>
+                </div>
+                <fieldset class="field">
+                  <legend>Session in</legend>
+                  <div class="choices choices-lang">
+                    <label class="choice"><input type="radio" name="language" value="en" checked><span class="choice-title">English</span></label>
+                    <label class="choice"><input type="radio" name="language" value="hi"><span class="choice-title" lang="hi">हिन्दी</span></label>
+                  </div>
+                </fieldset>
+              </div>
               <div class="field date-field">
                 <label for="f-date">Preferred day <span class="opt">optional</span></label>
                 <input id="f-date" name="date" type="date" aria-describedby="h-date e-date">
@@ -450,34 +500,40 @@
               <fieldset class="field">
                 <legend>Preferred time <span class="opt">IST</span></legend>
                 <div class="choices choices-time">
-                  <label class="choice"><input type="radio" name="time" value="" checked><span class="choice-title">Any time</span><span class="choice-hint">Flexible</span></label>
-                  <label class="choice"><input type="radio" name="time" value="Morning, 9 am to 12 pm"><span class="choice-title">Morning</span><span class="choice-hint">9 am to 12 pm</span></label>
-                  <label class="choice"><input type="radio" name="time" value="Afternoon, 12 pm to 4 pm"><span class="choice-title">Afternoon</span><span class="choice-hint">12 to 4 pm</span></label>
-                  <label class="choice"><input type="radio" name="time" value="Evening, 4 pm to 8 pm"><span class="choice-title">Evening</span><span class="choice-hint">4 to 8 pm</span></label>
+                  <label class="choice"><input type="radio" name="time" value="any" checked aria-describedby="h-time"><span class="choice-title">Any time</span><span class="choice-hint">Flexible</span></label>
+                  <label class="choice"><input type="radio" name="time" value="morning" aria-describedby="h-time"><span class="choice-title">Morning</span><span class="choice-hint">9 am to 12 pm</span><span class="choice-local" data-slot="morning"></span></label>
+                  <label class="choice"><input type="radio" name="time" value="afternoon" aria-describedby="h-time"><span class="choice-title">Afternoon</span><span class="choice-hint">12 to 4 pm</span><span class="choice-local" data-slot="afternoon"></span></label>
+                  <label class="choice"><input type="radio" name="time" value="evening" aria-describedby="h-time"><span class="choice-title">Evening</span><span class="choice-hint">4 to 8 pm</span><span class="choice-local" data-slot="evening"></span></label>
                 </div>
+                <p class="field-hint" id="h-time"></p>
               </fieldset>
               <div class="field">
                 <label for="f-msg">What would you like to explore? <span class="opt">optional</span></label>
-                <textarea id="f-msg" name="message" rows="4" placeholder="A question about my career, and a relationship pattern I keep repeating."></textarea>
+                <textarea id="f-msg" name="message" rows="4" maxlength="2000" placeholder="A question about my career, and a relationship pattern I keep repeating."></textarea>
+              </div>
+              <div class="hp" aria-hidden="true">
+                <label for="f-website">Leave this empty</label>
+                <input id="f-website" name="website" tabindex="-1" autocomplete="off">
               </div>
               <div class="form-actions">
-                <button class="btn btn-ink" type="submit" id="book-submit"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg><span class="spinner" aria-hidden="true"></span><span class="btn-label">Send request on WhatsApp</span></button>
-                <p class="form-note">Opens WhatsApp with your request filled in, ready for you to send. Prefer email? <a class="link" id="mail-alt" href="mailto:vyanasoul369@gmail.com">Send it by email</a></p>
+                <button class="btn btn-ink" type="submit" id="book-submit"><span class="spinner" aria-hidden="true"></span><span class="btn-label">Send request</span></button>
+                <p class="form-note">Rekha replies within 24 hours. Your details are used only to arrange your session (<a class="link" href="privacy.html">privacy</a>). Prefer to write to her yourself? <a class="link" id="wa-alt" href="https://wa.me/919987487242" target="_blank" rel="noopener">Use WhatsApp</a> or <a class="link" id="mail-alt" href="mailto:vyanasoul369@gmail.com">email</a>.</p>
               </div>
             </form>
 
             <div class="book-done" id="book-done" hidden>
               <span class="done-mark" aria-hidden="true"><svg class="ic"><use href="#i-check"/></svg></span>
-              <h3 id="done-h" tabindex="-1">Your request is ready in WhatsApp</h3>
-              <p id="done-msg">Press send in WhatsApp and Rekha will confirm within 24 hours.</p>
+              <h3 id="done-h" tabindex="-1">Request sent</h3>
+              <p id="done-msg">Rekha will confirm within 24 hours on WhatsApp or by email.</p>
+              <p class="done-ref" id="done-ref" hidden><span class="done-ref-label">Your reference</span> <strong id="done-ref-code"></strong></p>
               <pre class="done-summary" id="done-summary"></pre>
               <div class="done-actions">
-                <a class="btn btn-ink" id="done-open" href="https://wa.me/919987487242" target="_blank" rel="noopener"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg>Open WhatsApp again</a>
+                <a class="btn btn-ink" id="done-open" href="https://wa.me/919987487242" target="_blank" rel="noopener"><svg class="ic" aria-hidden="true"><use href="#i-chat"/></svg><span class="btn-label">Message Rekha on WhatsApp</span></a>
                 <button class="btn btn-ink-outline" type="button" id="done-copy"><svg class="ic" aria-hidden="true"><use href="#i-copy"/></svg><span class="btn-label">Copy request</span></button>
-                <button class="btn btn-ink-outline" type="button" id="done-edit">Edit request</button>
+                <button class="btn btn-ink-outline" type="button" id="done-edit"><span class="btn-label">Edit request</span></button>
               </div>
               <p class="done-status" id="done-status" role="status"></p>
-              <p class="form-note">Prefer email? <a class="link" id="done-mail" href="mailto:vyanasoul369@gmail.com">Send the same request by email</a></p>
+              <p class="form-note" id="done-mail-note">Prefer email? <a class="link" id="done-mail" href="mailto:vyanasoul369@gmail.com">Send the same request by email</a></p>
             </div>
           </div>
 
@@ -530,11 +586,17 @@
           <li><a href="mailto:vyanasoul369@gmail.com">vyanasoul369@gmail.com</a></li>
           <li><a href="https://instagram.com/vyana_soul369" target="_blank" rel="noopener">Instagram</a></li>
           <li><a href="https://www.facebook.com/people/Vyana-Soul/61586396214113/" target="_blank" rel="noopener">Facebook</a></li>
+          <li><a href="https://www.youtube.com/@VYANASOUL369" target="_blank" rel="noopener">YouTube</a></li>
         </ul>
       </div>
     </div>
+    <div class="wrap footer-note">
+      <p>Readings and healing sessions offer spiritual guidance. They are not a substitute for medical, psychological, legal or financial advice.</p>
+    </div>
     <div class="wrap footer-base">
       <p>© 2026 Vyana Soul</p>
+      <a class="btn-text" href="privacy.html">Privacy</a>
+      <a class="lang-switch" href="hi/" hreflang="hi" lang="hi">हिन्दी</a>
       <a class="btn-text" href="#top">Back to the beginning</a>
     </div>
   </footer>

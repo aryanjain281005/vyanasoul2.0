@@ -1,6 +1,6 @@
 /* Vyana Soul — scroll-driven film + page behaviour
    1. smooth scroll and in-page links   2. film player   3. chapters, rail and progress
-   4. header: solid state, menu sheet, current section   5. questions   6. booking request */
+   4. header: solid state, menu sheet, current section   5. questions   6. booking request (function, WhatsApp fallback) */
 (() => {
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const recording = /[?&]record\b/.test(location.search); // deterministic capture for walkthrough videos
@@ -49,9 +49,11 @@
   });
 
   /* ---------- 2. film player ---------- */
+  // pages below the site root (the Hindi page at /hi/) set vs-root so shared files resolve
+  const ROOT = document.querySelector('meta[name="vs-root"]')?.content || "";
   const SETS = {
-    desktop: { n: 239, dir: "frames/desktop", fx: 0.5, fy: 0.5 },
-    mobile: { n: 239, dir: "frames/mobile", fx: 0.5, fy: 0.5 },
+    desktop: { n: 239, dir: ROOT + "frames/desktop", fx: 0.5, fy: 0.5 },
+    mobile: { n: 239, dir: ROOT + "frames/mobile", fx: 0.5, fy: 0.5 },
   };
   const INK = "#08060f";
   const canvas = document.getElementById("film");
@@ -291,12 +293,13 @@
   });
 
   // the photo strip scrolls sideways on narrow screens: make it reachable by keyboard only then
-  const strip = document.getElementById("moment-strip");
-  const syncStrip = () => {
+  const strips = $$(".moment-strip");
+  const STRIP_LABEL = document.documentElement.lang === "hi" ? "तस्वीरें, और देखने के लिए दाएँ-बाएँ स्क्रॉल करें" : "Photographs, scroll sideways for more";
+  const syncStrip = () => strips.forEach((strip) => {
     const scrolls = strip.scrollWidth > strip.clientWidth + 2;
-    if (scrolls) { strip.setAttribute("tabindex", "0"); strip.setAttribute("role", "region"); strip.setAttribute("aria-label", "Photographs, scroll sideways for more"); }
+    if (scrolls) { strip.setAttribute("tabindex", "0"); strip.setAttribute("role", "region"); strip.setAttribute("aria-label", STRIP_LABEL); }
     else { strip.removeAttribute("tabindex"); strip.removeAttribute("role"); strip.removeAttribute("aria-label"); }
-  };
+  });
 
   /* ---------- resize ---------- */
   let lastSet = null;
@@ -340,19 +343,124 @@
     });
   });
 
-  /* ---------- 6. booking request → WhatsApp ---------- */
-  const WA = "https://wa.me/919987487242?text=";
+  /* ---------- 6. booking request → booking function, WhatsApp as the fallback ---------- */
+  const PAGE_LANG = document.documentElement.lang === "hi" ? "hi" : "en";
+  const T = {
+    en: {
+      errName: "Enter your name so Rekha knows who's writing.",
+      errPhone: "Check the number. Use digits only, with the country code if you're outside India.",
+      errEmail: "Check the email address. It should look like name@example.com.",
+      errContact: "Add a WhatsApp number or an email so Rekha can reach you.",
+      errService: "Choose a session, or pick “Not sure yet”.",
+      errDate: "Choose today or a later day.",
+      hintSun: "Sundays are by appointment. Rekha will confirm whether she can see you.",
+      hintSat: "Saturday sessions run from 10 am to 6 pm IST.",
+      timeLocal: (city) => `Times are India time (IST). Under each one is the same time in ${city}.`,
+      yourTime: (a, b) => `${a} to ${b} your time`,
+      send: "Send request", sending: "Sending…", opening: "Opening WhatsApp…",
+      sentH: "Request sent",
+      sentMsg: "Rekha will confirm within 24 hours on WhatsApp or by email, with your time, payment details and a short guide to prepare.",
+      sentOpen: "Message Rekha on WhatsApp", another: "Send another request",
+      failH: "Send your request on WhatsApp instead",
+      failMsg: "We couldn't reach the booking system just now, so this request wasn't sent. It's ready below: open WhatsApp, press send, and Rekha will confirm within 24 hours.",
+      rateMsg: "Several requests came from this connection in the last few minutes, so this one wasn't saved. If it's a new request, send it on WhatsApp instead.",
+      waH: "Your request is ready in WhatsApp", waBlockedH: "Your request is ready to send",
+      waMsg: "Press send in WhatsApp and Rekha will confirm within 24 hours. If WhatsApp didn't open, use the button below.",
+      waBlockedMsg: "Your browser kept WhatsApp from opening. Open it with the button below, then press send.",
+      openWa: "Open WhatsApp", openWaAgain: "Open WhatsApp again", edit: "Edit request",
+      copy: "Copy request", copied: "Copied",
+      copyOk: "Request copied. Paste it into WhatsApp or an email.",
+      copyFail: "This browser won't allow copying here. Select the request above and copy it instead.",
+      msgHello: "Namaste Rekha ji, I'd like to book a session.",
+      msgAfter: (ref) => `Namaste Rekha ji, I've just sent a session request on your website. My reference is ${ref}.`,
+      fName: "Name", fRef: "Reference", fSession: "Session", fDay: "Preferred day", fTime: "Preferred time", fCountry: "Country",
+      fLang: "Session in", fPhone: "WhatsApp", fEmail: "Email", fMsg: "What I'd like to explore",
+      subject: (n) => "Session request" + (n ? " from " + n : ""),
+      dateLocale: "en-IN",
+    },
+    hi: {
+      errName: "अपना नाम लिखें, ताकि रेखा जी जान सकें कि कौन लिख रहा है।",
+      errPhone: "नंबर दोबारा देखें। केवल अंक लिखें, और भारत से बाहर हों तो देश का कोड भी।",
+      errEmail: "ईमेल पता दोबारा देखें। यह name@example.com जैसा होना चाहिए।",
+      errContact: "WhatsApp नंबर या ईमेल में से कोई एक लिखें, ताकि रेखा जी आपसे संपर्क कर सकें।",
+      errService: "एक सत्र चुनें, या “अभी तय नहीं” चुनें।",
+      errDate: "आज या आगे का कोई दिन चुनें।",
+      hintSun: "रविवार को सत्र केवल पहले से तय समय पर होते हैं। रेखा जी बताएँगी कि वे मिल पाएँगी या नहीं।",
+      hintSat: "शनिवार को सत्र सुबह 10 बजे से शाम 6 बजे (IST) तक होते हैं।",
+      timeLocal: (city) => `समय भारतीय समय (IST) में है। हर विकल्प के नीचे ${city} का समय दिया है।`,
+      yourTime: (a, b) => `आपके समय से ${a} से ${b}`,
+      send: "अनुरोध भेजें", sending: "भेजा जा रहा है…", opening: "WhatsApp खुल रहा है…",
+      sentH: "अनुरोध भेज दिया गया",
+      sentMsg: "रेखा जी 24 घंटे के भीतर WhatsApp या ईमेल पर आपका समय, भुगतान की जानकारी और तैयारी की छोटी गाइड भेजकर पुष्टि करेंगी।",
+      sentOpen: "रेखा जी को WhatsApp करें", another: "एक और अनुरोध भेजें",
+      failH: "यह अनुरोध WhatsApp से भेजें",
+      failMsg: "अभी बुकिंग सिस्टम तक नहीं पहुँच पाए, इसलिए यह अनुरोध नहीं भेजा गया। अनुरोध नीचे तैयार है: WhatsApp खोलें और भेजें, रेखा जी 24 घंटे में पुष्टि करेंगी।",
+      rateMsg: "पिछले कुछ मिनटों में इस कनेक्शन से कई अनुरोध आए हैं, इसलिए यह सेव नहीं हुआ। अगर यह नया अनुरोध है, तो इसे WhatsApp से भेजें।",
+      waH: "आपका अनुरोध WhatsApp में तैयार है", waBlockedH: "आपका अनुरोध भेजने के लिए तैयार है",
+      waMsg: "WhatsApp में भेजें दबाएँ, रेखा जी 24 घंटे में पुष्टि करेंगी। WhatsApp न खुले तो नीचे का बटन दबाएँ।",
+      waBlockedMsg: "आपके ब्राउज़र ने WhatsApp खुलने से रोक दिया। नीचे के बटन से खोलें और भेजें।",
+      openWa: "WhatsApp खोलें", openWaAgain: "WhatsApp फिर से खोलें", edit: "अनुरोध बदलें",
+      copy: "अनुरोध कॉपी करें", copied: "कॉपी हो गया",
+      copyOk: "अनुरोध कॉपी हो गया। इसे WhatsApp या ईमेल में पेस्ट करें।",
+      copyFail: "यह ब्राउज़र यहाँ कॉपी नहीं करने देता। ऊपर के अनुरोध को चुनकर कॉपी करें।",
+      msgHello: "नमस्ते रेखा जी, मुझे एक सत्र बुक करना है।",
+      msgAfter: (ref) => `नमस्ते रेखा जी, मैंने अभी वेबसाइट पर सत्र का अनुरोध भेजा है। मेरी संदर्भ संख्या ${ref} है।`,
+      fName: "नाम", fRef: "संदर्भ", fSession: "सत्र", fDay: "पसंदीदा दिन", fTime: "पसंदीदा समय", fCountry: "देश",
+      fLang: "सत्र की भाषा", fPhone: "WhatsApp", fEmail: "ईमेल", fMsg: "किस बारे में बात करनी है",
+      subject: (n) => "सत्र का अनुरोध" + (n ? ": " + n : ""),
+      dateLocale: "hi-IN",
+    },
+  }[PAGE_LANG];
+
+  const WA_NUMBER = "919987487242";
+  const WA = `https://wa.me/${WA_NUMBER}?text=`;
   const MAIL = "vyanasoul369@gmail.com";
+  const meta = (n) => (document.querySelector(`meta[name="${n}"]`)?.content || "").trim();
+  const ENDPOINT = meta("vs-booking-endpoint");
+  const SITEKEY = meta("vs-turnstile-sitekey");
+
   const form = document.getElementById("book-form");
   const F = form.elements;
   const done = document.getElementById("book-done");
   const submitBtn = document.getElementById("book-submit");
   const submitLabel = submitBtn.querySelector(".btn-label");
   const dateHint = document.getElementById("h-date");
+  const timeHint = document.getElementById("h-time");
   const mailAlt = document.getElementById("mail-alt");
+  const waAlt = document.getElementById("wa-alt");
+
+  /* the visitor's time zone sets the country and the local-time hints */
+  let TZ = "";
+  try { TZ = Intl.DateTimeFormat().resolvedOptions().timeZone || ""; } catch (e) {}
+  const IN_INDIA = !TZ || /^Asia\/(Kolkata|Calcutta)$/.test(TZ);
+  const TZ_COUNTRY = [
+    [/^Asia\/(Kolkata|Calcutta)$/, "India"], [/^America\/(Toronto|Vancouver|Edmonton|Winnipeg|Halifax|Regina|St_Johns|Montreal)$/, "Canada"],
+    [/^(America\/(New_York|Chicago|Denver|Los_Angeles|Phoenix|Anchorage|Detroit|Boise|Indiana)|Pacific\/Honolulu|US\/)/, "United States"],
+    [/^Europe\/London$/, "United Kingdom"], [/^Australia\//, "Australia"], [/^Asia\/Dubai$/, "United Arab Emirates"],
+    [/^Asia\/Singapore$/, "Singapore"], [/^Pacific\/Auckland$/, "New Zealand"], [/^Asia\/(Kathmandu|Katmandu)$/, "Nepal"],
+    [/^Europe\/Berlin$/, "Germany"], [/^Europe\/Amsterdam$/, "Netherlands"], [/^Europe\/Dublin$/, "Ireland"],
+    [/^Asia\/Riyadh$/, "Saudi Arabia"], [/^Asia\/Qatar$/, "Qatar"], [/^Asia\/Kuwait$/, "Kuwait"], [/^Asia\/Muscat$/, "Oman"],
+    [/^Asia\/Kuala_Lumpur$/, "Malaysia"], [/^Africa\/Johannesburg$/, "South Africa"], [/^Indian\/Mauritius$/, "Mauritius"],
+  ];
+  const guessCountry = () => (TZ_COUNTRY.find(([re]) => re.test(TZ)) || [null, TZ ? "Other" : "India"])[1];
+  const defaults = () => { F.country.value = guessCountry(); const l = $(`input[name="language"][value="${PAGE_LANG}"]`, form); if (l) l.checked = true; };
+
+  const SLOT_HOURS = { morning: [9, 12], afternoon: [12, 16], evening: [16, 20] };
+  const fmtTime = (d) => d.toLocaleTimeString("en-US", { timeZone: TZ, hour: "numeric", minute: "2-digit" }).replace(":00", "").replace(/\s?AM/, " am").replace(/\s?PM/, " pm");
+  function updateLocalTimes() {
+    if (IN_INDIA) { timeHint.textContent = ""; return; }
+    // the same IST window on the chosen day (or today), shown in the visitor's own time
+    const day = F.date.value || new Date(Date.now() + 330 * 60000).toISOString().slice(0, 10);
+    const at = (h) => new Date(Date.parse(day + "T00:00:00Z") + (h * 60 - 330) * 60000);
+    $$(".choice-local", form).forEach((el) => {
+      const [a, b] = SLOT_HOURS[el.dataset.slot];
+      el.textContent = T.yourTime(fmtTime(at(a)), fmtTime(at(b)));
+    });
+    timeHint.textContent = T.timeLocal(TZ.split("/").pop().replace(/_/g, " "));
+  }
 
   // a draft survives a reload or a trip to WhatsApp and back, for this tab only
-  const DRAFT = "vs-booking-draft";
+  const DRAFT = "vs-booking-draft-v2";
   const draft = {
     get() { try { return JSON.parse(sessionStorage.getItem(DRAFT) || "null"); } catch (e) { return null; } },
     set(v) { try { sessionStorage.setItem(DRAFT, JSON.stringify(v)); } catch (e) {} },
@@ -360,14 +468,25 @@
   };
   const read = () => ({
     name: F.name.value.trim(), phone: F.phone.value.trim(), email: F.email.value.trim(),
-    service: F.service.value, date: F.date.value, time: F.time.value, message: F.message.value.trim(),
+    service: F.service.value, country: F.country.value, language: F.language.value,
+    date: F.date.value, time: F.time.value || "any", message: F.message.value.trim(), website: F.website.value,
   });
 
   // no requests for days already gone (local calendar day)
   const now = new Date();
   F.date.min = new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   const dayOf = (iso) => new Date(iso + "T12:00:00");
-  const niceDay = (iso) => dayOf(iso).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  const niceDay = (iso) => dayOf(iso).toLocaleDateString(T.dateLocale, { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+  // what the visitor sees for a choice, in the page's language
+  const choiceText = (name, value) => {
+    const input = $$(`input[name="${name}"]`, form).find((i) => i.value === value);
+    const label = input && input.closest(".choice");
+    if (!label) return value;
+    const title = label.querySelector(".choice-title").textContent.trim();
+    const hint = name === "time" && value !== "any" ? label.querySelector(".choice-hint").textContent.trim() : "";
+    return hint ? `${title}, ${hint} IST` : title;
+  };
+  const countryText = () => F.country.selectedOptions[0]?.textContent.trim() || F.country.value;
 
   const syncChoices = () => $$(".choice", form).forEach((c) => c.classList.toggle("is-checked", c.querySelector("input").checked));
   function chooseService(value) {
@@ -380,19 +499,27 @@
     saveDraft();
   }
 
+  const phoneOk = (p) => /^[+\d][\d\s()-]*$/.test(p) && p.replace(/\D/g, "").length >= 8 && p.replace(/\D/g, "").length <= 15;
   const RULES = {
-    name: (v) => (v.name ? "" : "Enter your name so Rekha knows who's writing."),
-    phone: (v) => (!v.phone || (/^[+\d][\d\s()-]*$/.test(v.phone) && v.phone.replace(/\D/g, "").length >= 8) ? "" : "Check the number. Use digits only, with the country code if you're outside India."),
-    email: (v) => (!v.email || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.email) ? "" : "Check the email address. It should look like name@example.com."),
-    service: (v) => (v.service ? "" : "Choose a session, or pick “Not sure yet”."),
-    date: (v) => (!v.date || v.date >= F.date.min ? "" : "Choose today or a later day."),
+    name: (v) => (v.name.length >= 2 ? "" : T.errName),
+    phone: (v) => (!v.phone || phoneOk(v.phone) ? "" : T.errPhone),
+    email: (v) => (!v.email || /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.email) ? "" : T.errEmail),
+    contact: (v) => (v.phone || v.email ? "" : T.errContact),
+    service: (v) => (v.service ? "" : T.errService),
+    date: (v) => (!v.date || v.date >= F.date.min ? "" : T.errDate),
   };
+  const ERR = { name: T.errName, phone: T.errPhone, email: T.errEmail, contact: T.errContact, service: T.errService, date: T.errDate };
+  const isShown = (n) => !document.getElementById("e-" + n).hidden;
   function showError(name, msg) {
     const box = document.getElementById("e-" + name);
     box.querySelector("span").textContent = msg;
     box.hidden = !msg;
-    const targets = name === "service" ? $$('input[name="service"]', form) : [F[name]];
-    targets.forEach((t) => { if (msg) t.setAttribute("aria-invalid", "true"); else t.removeAttribute("aria-invalid"); });
+    const targets = name === "service" ? $$('input[name="service"]', form) : name === "contact" ? [F.phone, F.email] : [F[name]];
+    targets.forEach((t) => {
+      // phone and email stay marked while their own error or the shared "one of these" error shows
+      const bad = t.type === "radio" ? !!msg : isShown(t.name) || ((t.name === "phone" || t.name === "email") && isShown("contact"));
+      if (bad) t.setAttribute("aria-invalid", "true"); else t.removeAttribute("aria-invalid");
+    });
   }
   const check = (name, v = read()) => { const msg = RULES[name](v); showError(name, msg); return !msg; };
 
@@ -401,50 +528,58 @@
     let hint = "";
     if (iso && iso >= F.date.min) {
       const wd = dayOf(iso).getDay();
-      if (wd === 0) hint = "Sundays are by appointment. Rekha will confirm whether she can see you.";
-      else if (wd === 6) hint = "Saturday sessions run from 10 am to 6 pm IST.";
+      if (wd === 0) hint = T.hintSun;
+      else if (wd === 6) hint = T.hintSat;
     }
     dateHint.textContent = hint;
   }
 
-  function message(v) {
+  function message(v, ref) {
     return [
-      "Namaste Rekha ji, I'd like to book a session.",
+      T.msgHello,
       "",
-      `Name: ${v.name}`,
-      `Session: ${v.service}`,
-      v.date ? `Preferred day: ${niceDay(v.date)}` : null,
-      v.time ? `Preferred time: ${v.time} IST` : null,
-      v.phone ? `WhatsApp: ${v.phone}` : null,
-      v.email ? `Email: ${v.email}` : null,
-      v.message ? `\nWhat I'd like to explore: ${v.message}` : null,
+      ref ? `${T.fRef}: ${ref}` : null,
+      `${T.fName}: ${v.name}`,
+      `${T.fSession}: ${choiceText("service", v.service)}`,
+      v.date ? `${T.fDay}: ${niceDay(v.date)}` : null,
+      v.time && v.time !== "any" ? `${T.fTime}: ${choiceText("time", v.time)}` : null,
+      `${T.fCountry}: ${countryText()}`,
+      `${T.fLang}: ${choiceText("language", v.language)}`,
+      v.phone ? `${T.fPhone}: ${v.phone}` : null,
+      v.email ? `${T.fEmail}: ${v.email}` : null,
+      v.message ? `\n${T.fMsg}: ${v.message}` : null,
     ].filter((l) => l !== null).join("\n");
   }
-  const mailto = (v) => `mailto:${MAIL}?subject=${encodeURIComponent("Session request" + (v.name ? " from " + v.name : ""))}&body=${encodeURIComponent(message(v))}`;
+  const mailto = (v, ref) => `mailto:${MAIL}?subject=${encodeURIComponent(T.subject(v.name) + (ref ? ` (${ref})` : ""))}&body=${encodeURIComponent(message(v, ref))}`;
 
   let saveT;
-  const saveDraft = () => { clearTimeout(saveT); saveT = setTimeout(() => draft.set(read()), 250); };
+  const saveDraft = () => { clearTimeout(saveT); saveT = setTimeout(() => { const { website, ...v } = read(); draft.set(v); }, 250); };
 
-  // restore a draft from earlier in this tab
+  // start from the visitor's country and language, then restore a draft from earlier in this tab
+  defaults();
   const saved = draft.get();
   if (saved) {
-    ["name", "phone", "email", "date", "message"].forEach((k) => { if (saved[k]) F[k].value = saved[k]; });
-    if (saved.service) { const r = $$('input[name="service"]', form).find((i) => i.value === saved.service); if (r) r.checked = true; }
-    const t = $$('input[name="time"]', form).find((i) => i.value === (saved.time || "")); if (t) t.checked = true;
+    ["name", "phone", "email", "date", "message", "country"].forEach((k) => { if (saved[k]) F[k].value = saved[k]; });
+    ["service", "language", "time"].forEach((k) => {
+      const r = $$(`input[name="${k}"]`, form).find((i) => i.value === saved[k]);
+      if (r) r.checked = true;
+    });
     updateDateHint();
   }
   syncChoices();
+  updateLocalTimes();
 
   // fix errors as people type; check a field when they leave it, once it has something in it
   form.addEventListener("input", (e) => {
     const n = e.target.name;
-    if (RULES[n] && (e.target.getAttribute("aria-invalid") === "true")) check(n);
+    if (RULES[n] && e.target.getAttribute("aria-invalid") === "true") check(n);
+    if ((n === "phone" || n === "email") && !document.getElementById("e-contact").hidden) check("contact");
     saveDraft();
   });
   form.addEventListener("change", (e) => {
     const n = e.target.name;
-    if (n === "service" || n === "time") { syncChoices(); if (n === "service") showError("service", ""); }
-    if (n === "date") { updateDateHint(); check("date"); }
+    if (n === "service" || n === "time" || n === "language") { syncChoices(); if (n === "service") showError("service", ""); }
+    if (n === "date") { updateDateHint(); check("date"); updateLocalTimes(); }
     saveDraft();
   });
   form.addEventListener("focusout", (e) => {
@@ -452,54 +587,154 @@
     if ((n === "phone" || n === "email") && e.target.value.trim()) check(n);
   });
   mailAlt.addEventListener("click", () => { mailAlt.href = mailto(read()); });
+  waAlt.addEventListener("click", () => { waAlt.href = WA + encodeURIComponent(message(read())); });
 
-  let sending = false, lastText = "";
-  function setLoading(on) {
+  /* optional Cloudflare Turnstile: loads on first interaction, only when a site key is set */
+  let tsWidget = null, tsReady = null;
+  function loadTurnstile() {
+    if (!SITEKEY || tsReady) return tsReady;
+    const box = document.createElement("div");
+    box.id = "ts-box";
+    form.querySelector(".form-actions").before(box);
+    tsReady = new Promise((resolve) => {
+      window.vsTurnstileLoad = () => {
+        try { tsWidget = window.turnstile.render(box, { sitekey: SITEKEY, theme: "light", appearance: "interaction-only", language: PAGE_LANG }); } catch (e) {}
+        resolve();
+      };
+      const s = document.createElement("script");
+      s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=vsTurnstileLoad";
+      s.async = true;
+      s.onerror = () => resolve();
+      document.head.appendChild(s);
+    });
+    return tsReady;
+  }
+  async function turnstileToken() {
+    if (!SITEKEY) return "";
+    await loadTurnstile();
+    if (tsWidget === null || !window.turnstile) return "";
+    let t = window.turnstile.getResponse(tsWidget) || "";
+    for (let i = 0; i < 40 && !t; i++) { await new Promise((r) => setTimeout(r, 200)); t = window.turnstile.getResponse(tsWidget) || ""; }
+    return t;
+  }
+  if (SITEKEY && ENDPOINT) form.addEventListener("focusin", loadTurnstile, { once: true });
+
+  let sending = false, lastText = "", lastValues = null, doneKind = "";
+  function setLoading(on, label) {
     sending = on;
     submitBtn.classList.toggle("is-loading", on);
     submitBtn.setAttribute("aria-disabled", String(on));
     submitBtn.toggleAttribute("aria-busy", on);
-    submitLabel.textContent = on ? "Opening WhatsApp…" : "Send request on WhatsApp";
+    submitLabel.textContent = on ? label : T.send;
   }
 
-  form.addEventListener("submit", (e) => {
+  async function sendToServer(v) {
+    const token = await turnstileToken();
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 15000);
+    try {
+      const res = await fetch(ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...v, timezone: TZ, locale: PAGE_LANG, turnstileToken: token }),
+        signal: ctrl.signal,
+      });
+      const out = await res.json().catch(() => ({}));
+      if (res.status === 201 && out.ref) return { kind: "sent", ref: out.ref };
+      if (res.status === 422 && out.fields) return { kind: "invalid", fields: out.fields };
+      return { kind: "failed", reason: res.status === 429 ? "rate" : "error" };
+    } catch (e) {
+      return { kind: "failed", reason: "error" };
+    } finally {
+      clearTimeout(timer);
+      if (tsWidget !== null && window.turnstile) { try { window.turnstile.reset(tsWidget); } catch (e) {} }
+    }
+  }
+
+  form.addEventListener("submit", async (e) => {
     e.preventDefault();
     if (sending) return;
     const v = read();
     let first = null;
-    for (const n of ["name", "phone", "email", "service", "date"]) {
-      if (!check(n, v) && !first) first = n === "service" ? $('input[name="service"]', form) : F[n];
+    for (const n of ["name", "phone", "email", "contact", "service", "date"]) {
+      if (!check(n, v) && !first) first = n === "service" ? $('input[name="service"]', form) : n === "contact" ? F.phone : F[n];
     }
     if (first) { first.focus(); return; }
-
-    setLoading(true);
+    lastValues = v;
     lastText = message(v);
-    const url = WA + encodeURIComponent(lastText);
-    // open synchronously inside the click so pop-up blockers allow it; a null result means it was blocked
-    let win = null;
-    if (!recording) { try { win = window.open(url, "_blank"); if (win) win.opener = null; } catch (err) { win = null; } }
-    setTimeout(() => { setLoading(false); showDone(url, !!win || recording, v); }, 300);
+
+    if (!ENDPOINT) {
+      // no booking function configured: open WhatsApp synchronously inside the click so pop-up blockers allow it
+      setLoading(true, T.opening);
+      const url = WA + encodeURIComponent(lastText);
+      let win = null;
+      if (!recording) { try { win = window.open(url, "_blank"); if (win) win.opener = null; } catch (err) { win = null; } }
+      setTimeout(() => { setLoading(false); showDone({ kind: "whatsapp", opened: !!win || recording }); }, 300);
+      return;
+    }
+
+    setLoading(true, T.sending);
+    const result = await sendToServer(v);
+    setLoading(false);
+    if (result.kind === "invalid") {
+      // the server's rules match these; show what it caught
+      let firstBad = null;
+      for (const n of ["name", "phone", "email", "contact", "service", "date"]) {
+        if (!result.fields[n]) continue;
+        showError(n, RULES[n](v) || ERR[n]);
+        if (!firstBad) firstBad = n === "contact" ? F.phone : n === "service" ? $('input[name="service"]', form) : F[n];
+      }
+      (firstBad || F.name).focus();
+      return;
+    }
+    showDone(result);
   });
 
   const doneH = document.getElementById("done-h");
   const doneMsg = document.getElementById("done-msg");
+  const doneRef = document.getElementById("done-ref");
   const doneOpen = document.getElementById("done-open");
   const doneCopy = document.getElementById("done-copy");
+  const doneEdit = document.getElementById("done-edit");
   const doneStatus = document.getElementById("done-status");
-  function showDone(url, opened, v) {
-    done.classList.toggle("blocked", !opened);
-    doneH.textContent = opened ? "Your request is ready in WhatsApp" : "Your request is ready to send";
-    doneMsg.textContent = opened
-      ? "Press send in WhatsApp and Rekha will confirm within 24 hours. If WhatsApp didn't open, use the button below."
-      : "Your browser kept WhatsApp from opening. Open it with the button below, then press send.";
-    doneOpen.lastChild.textContent = opened ? "Open WhatsApp again" : "Open WhatsApp";
-    doneOpen.href = url;
+  const doneMailNote = document.getElementById("done-mail-note");
+  const setLabel = (btn, text) => { btn.querySelector(".btn-label").textContent = text; };
+
+  function showDone(result) {
+    const v = lastValues;
+    doneKind = result.kind;
+    done.classList.toggle("blocked", result.kind === "whatsapp" && !result.opened);
+    done.classList.toggle("failed", result.kind === "failed");
+    doneRef.hidden = result.kind !== "sent";
+    doneMailNote.hidden = result.kind === "sent";
+    if (result.kind === "sent") {
+      lastText = message(v, result.ref);
+      document.getElementById("done-ref-code").textContent = result.ref;
+      doneH.textContent = T.sentH;
+      doneMsg.textContent = T.sentMsg;
+      doneOpen.href = WA + encodeURIComponent(T.msgAfter(result.ref));
+      setLabel(doneOpen, T.sentOpen);
+      setLabel(doneEdit, T.another);
+    } else if (result.kind === "failed") {
+      doneH.textContent = T.failH;
+      doneMsg.textContent = result.reason === "rate" ? T.rateMsg : T.failMsg;
+      doneOpen.href = WA + encodeURIComponent(lastText);
+      setLabel(doneOpen, T.openWa);
+      setLabel(doneEdit, T.edit);
+    } else {
+      doneH.textContent = result.opened ? T.waH : T.waBlockedH;
+      doneMsg.textContent = result.opened ? T.waMsg : T.waBlockedMsg;
+      doneOpen.href = WA + encodeURIComponent(lastText);
+      setLabel(doneOpen, result.opened ? T.openWaAgain : T.openWa);
+      setLabel(doneEdit, T.edit);
+    }
     document.getElementById("done-summary").textContent = lastText;
     document.getElementById("done-mail").href = mailto(v);
     doneStatus.textContent = "";
     form.hidden = true;
     done.hidden = false;
-    draft.clear();
+    // a saved request is finished with; one that still has to be sent keeps its draft
+    if (result.kind !== "failed") { clearTimeout(saveT); draft.clear(); }
     focusQuietly(doneH);
     ScrollTrigger.refresh();
   }
@@ -509,7 +744,18 @@
     ScrollTrigger.refresh();
     if (focus) F.name.focus({ preventScroll: false });
   }
-  document.getElementById("done-edit").addEventListener("click", () => showForm(true));
+  doneEdit.addEventListener("click", () => {
+    if (doneKind === "sent") {
+      // a fresh form for a new request; keep who they are and where they live
+      const keep = { name: F.name.value, phone: F.phone.value, email: F.email.value, country: F.country.value };
+      form.reset();
+      defaults();
+      F.name.value = keep.name; F.phone.value = keep.phone; F.email.value = keep.email; F.country.value = keep.country;
+      ["name", "phone", "email", "contact", "service", "date"].forEach((n) => showError(n, ""));
+      updateDateHint(); updateLocalTimes(); syncChoices();
+    }
+    showForm(true);
+  });
 
   async function copy(text) {
     try { await navigator.clipboard.writeText(text); return true; } catch (e) {}
@@ -523,14 +769,13 @@
   let copyT;
   doneCopy.addEventListener("click", async () => {
     const ok = await copy(lastText);
-    const label = doneCopy.querySelector(".btn-label");
     clearTimeout(copyT);
     if (ok) {
-      label.textContent = "Copied";
-      doneStatus.textContent = "Request copied. Paste it into WhatsApp or an email.";
-      copyT = setTimeout(() => { label.textContent = "Copy request"; }, 2400);
+      setLabel(doneCopy, T.copied);
+      doneStatus.textContent = T.copyOk;
+      copyT = setTimeout(() => setLabel(doneCopy, T.copy), 2400);
     } else {
-      doneStatus.textContent = "This browser won't allow copying here. Select the request above and copy it instead.";
+      doneStatus.textContent = T.copyFail;
     }
   });
 })();

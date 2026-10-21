@@ -1,0 +1,6 @@
+# Only what the v2 functions need; the project itself is managed in the Supabase dashboard.
+project_id = "xvdoutqezjsuogankqna"
+
+[functions.booking]
+# The function checks admin tokens itself; the public booking route must work without one.
+verify_jwt = false

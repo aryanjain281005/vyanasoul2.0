@@ -49,45 +49,57 @@ Performance:
 - once the visitor scrolls past the journey, the scene stops rendering entirely
 - add `#fps` to the URL to see the frame rate, resolution and draw calls in the corner
 
-To change the 3D scene, edit `src3d/app.js` and rebuild:
+To change the 3D scene, edit `src3d/app.js` and rebuild (Three.js is pinned to r186, so the bundle comes out byte for byte the same):
 
 ```bash
-npm i three esbuild
-npx esbuild src3d/app.js --bundle --minify --format=esm --target=es2020 --outfile=app3d.js
+npm install
+npm run build:3d
 ```
 
 ## Run it locally
 
-Any static server works. From this folder:
+`index.html`, `privacy.html` and `404.html` are the English sources and run as they are. The deployable site (Hindi page, reviews from the database, SEO files) is built into `dist/`:
 
 ```bash
-python3 -m http.server 8000
-# open http://localhost:8000
+npm install
+npm run build        # preview build into dist/ (noindex)
+npm run dev          # serves dist/ at http://localhost:8000
 ```
 
-(Opening `index.html` directly from disk won't load the frames; it needs a server.)
+Any static server pointed at this folder also works for quick edits to the English page (`python3 -m http.server 8000`), but the Hindi link needs a build.
+
+| Command | What it does |
+|---|---|
+| `npm run check` | Every English string has a Hindi translation; in-page links and alt text are in place |
+| `npm run sync` | Pulls published reviews from Supabase into `data/reviews.json` |
+| `npm run build` / `npm run build:prod` | Builds `dist/` for the GitHub Pages preview (noindex) or for www.vyanasoul.com (indexable) |
+| `npm run build:3d` / `npm run build:admin` | Rebundle `app3d.js` from `src3d/`, or `admin/admin.js` from `admin-src/` |
+| `npm run deploy:preview` | Builds the preview and publishes it to the `gh-pages` branch |
 
 ## Deploy
 
-It's plain HTML, CSS and JS with no build step. The live copy is served by GitHub Pages from the `gh-pages` branch, which holds this folder's contents:
+**Production (www.vyanasoul.com) on Vercel.** Set the project's root directory to `cinematic/`. `vercel.json` runs `npm run sync && npm run build:prod`, serves `dist/`, redirects the old v1 addresses (`/dashboard`, `/courses`, `/blog`), adds security headers, and keeps `/admin/` out of search. To let the admin's "Update the website" button redeploy, create a deploy hook in Vercel and save it as the `VERCEL_DEPLOY_HOOK_URL` secret of the booking function.
 
-```bash
-git push origin $(git subtree split --prefix cinematic HEAD):refs/heads/gh-pages --force
-```
+**Preview (GitHub Pages).** `npm run deploy:preview` builds with `noindex` and force-pushes `dist/` to `gh-pages`.
 
-On Vercel, set the project's root directory to `cinematic/`; `vercel.json` adds long cache headers for the frames and fonts. Netlify or any static host also works.
+**Booking backend (Supabase).** The function and migration live in `../supabase/`; see the README there.
 
 ## Files
 
 ```
-index.html        page markup and all copy
+index.html        page markup and all English copy (the source of both language versions)
+privacy.html      privacy notice          404.html   page-not-found
 styles.css        design tokens and layout
-main.js           chapter timing, smooth scroll, header menu and current section, questions, booking form, film player
+main.js           chapter timing, smooth scroll, header menu, questions, booking form, film player
 app3d.js          the 3D library (bundled from src3d/app.js, includes Three.js)
+admin/            the owner's admin page (admin.js is bundled from admin-src/admin.js)
+i18n/hi.json      Hindi translations, keyed by the English text
+data/reviews.json published reviews, from `npm run sync`
+tools/            build, check, sync, local server and preview deploy
 frames/desktop/   239 frames, 1920×1080 WebP
 frames/mobile/    239 frames, 810×1440 WebP, used when the screen is portrait
-assets/           Rekha's photos, favicon, social preview image
-fonts/            self-hosted Bodoni Moda, Hanken Grotesk, Tiro Devanagari Sanskrit
+assets/           Rekha's photos (gallery/ holds the photos moved over from the old site), favicon, social image
+fonts/            self-hosted Bodoni Moda, Hanken Grotesk, Tiro Devanagari Sanskrit, Mukta (Devanagari text)
 vendor/           GSAP 3.15 + ScrollTrigger, Lenis 1.3 (local copies, no CDN needed)
 film-src/         grade.py (the colour grade) and particles/ (the earlier procedural film)
 ```
@@ -129,14 +141,39 @@ python3 film-src/grade.py src graded 0 1
 
 ## Booking form
 
-Only a name and a session are required. Sessions and times are tappable choices; "Book this session" on a session card picks that session and jumps to the form. Days in the past can't be chosen, and Saturday or Sunday picks show the hours for that day. A draft is kept for the tab, so a reload or a trip to WhatsApp and back doesn't lose it.
+You need a name, a session, and a WhatsApp number or an email. Sessions, times and the session language are tappable choices; "Book this session" on a session card picks that session and jumps to the form. The country is preselected from the visitor's time zone, and visitors outside India see each IST window in their own time ("6:30 am to 10:30 am your time"). Days in the past can't be chosen, and Saturday or Sunday picks show the hours for that day. A draft is kept for the tab, so a reload doesn't lose it.
 
-Sending opens WhatsApp with the request filled in, addressed to +91 99874 87242, and the card switches to a confirmation with the request text, "Open WhatsApp again", "Copy request" and "Edit request". If the browser blocks the new tab, the confirmation says so. There's an email route in the form and on the confirmation.
+Sending posts the request to the Supabase `booking` function (the address is in `<meta name="vs-booking-endpoint">`). The function saves it, replies with a reference such as `VS-7K3F9`, then sends Rekha a Telegram alert (and emails, if set up). The card shows "Request sent", the reference, "Message Rekha on WhatsApp" (prefilled with the reference), "Copy request" and "Send another request".
 
-To send requests to the existing Supabase booking function instead, replace the `window.open(...)` part of the submit handler in `main.js` with a `fetch` POST to that endpoint.
+If the function can't be reached, or rate-limits the visitor, nothing is lost: the card switches to "Send your request on WhatsApp instead", with the request ready to send and an email route. Remove the meta tag and the form goes straight to WhatsApp, as it did before.
+
+Spam protection: a hidden honeypot field, a limit of 5 requests per 10 minutes per connection, and optional Cloudflare Turnstile (put the site key in `<meta name="vs-turnstile-sitekey">` and the secret in the function).
+
+## Hindi page
+
+`/hi/` is built from `index.html`: every text and label is looked up in `i18n/hi.json` by its English wording. When you change English text, `npm run check` lists what needs a new translation, and a production build refuses to finish until it has one. Reviews stay in the language they were written in (`translate="no"`). The booking form's messages are in `main.js` (the `T` object). Hindi headings use Tiro Devanagari and Hindi text uses Mukta. The translations are a first draft and should be read by Rekha or a fluent writer.
+
+## Reviews
+
+Reviews come from the `reviews` table: the first four featured reviews appear on the page, and every other published review sits under "Read N more reviews". Rekha manages them in the admin (add, edit, show or hide, feature, and record the client's consent), then presses "Update the website". The 3D library's books read the featured reviews from the page.
+
+## Admin
+
+`/admin/` is for Rekha and the developer: sign in with the email and password from the old site, a magic link, or Google (magic links and Google need the admin's address in Supabase → Authentication → URL configuration). It shows:
+- **Requests**: new and in-progress first, search, one tap to WhatsApp/call/email, status and private notes, plus a warning with "Send again" if an alert didn't reach Telegram
+- **Messages**: contact messages
+- **Reviews**: as above
+
+Access is enforced by row-level security (`profiles.role = 'admin'`), not by the page.
+
+## Search engines
+
+The production build adds a canonical link, `hreflang` for English and Hindi, absolute social-card URLs, and structured data (Organization, Person, the three Services, and an FAQPage built from the visible questions). It also writes `robots.txt`, `sitemap.xml` (both languages) and `llms.txt`. Preview builds are `noindex` and disallow crawling. After launch, submit `https://www.vyanasoul.com/sitemap.xml` in Google Search Console.
 
 ## Please confirm before going live
 
 - **Session length.** The old site says 50–60 minutes in one place and 60–90 minutes in the FAQ. The new site uses the FAQ wording (mini reading 30 minutes, personal reading 60 to 90 minutes). Change it in the Sessions section if that's wrong.
 - **Course fees.** Taken from the old site's course data (₹2,999 to ₹12,999). The old "original price" strike-throughs were dropped.
-- **Reviews.** Shortened versions of the four real reviews from the old site, emojis removed.
+- **Reviews.** The four featured reviews are shortened versions of reviews from the old site. Record each client's consent in the admin.
+- **Hindi translations.** A first draft; have Rekha or a fluent writer read `i18n/hi.json` (or the `/hi/` page).
+- **Privacy notice.** A plain-language draft in `privacy.html`; Rekha should confirm the 24-month retention period.
