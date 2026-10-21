@@ -47,12 +47,14 @@ function boot() {
   const recording = !!VS.recording;
   const coarse = matchMedia("(pointer: coarse)").matches;
   const phone = coarse && Math.min(innerWidth, innerHeight) < 820;
+  const DPR = devicePixelRatio || 1;
+  // realLights: per-pixel lights for wood and floor; bakeLights: lights baked into the books
   const Q = phone
-    ? { dpr: Math.min(devicePixelRatio || 1, 1.4), zMin: -21, levels: 13, dust: 1300, vortex: 16000, stars: 1600, candles: 40, lights: 4, aa: false }
-    : { dpr: Math.min(devicePixelRatio || 1, 1.75), zMin: -29, levels: 17, dust: 3400, vortex: 40000, stars: 3600, candles: 86, lights: 7, aa: true };
+    ? { dprMax: Math.min(DPR, 1.5), dpr: Math.min(DPR, 1.25), zMin: -21, levels: 13, dust: 1200, vortex: 14000, stars: 1400, candles: 40, realLights: 2, bakeLights: 5 }
+    : { dprMax: Math.min(DPR, 1.75), dpr: Math.min(DPR, 1.5), zMin: -27, levels: 17, dust: 3000, vortex: 32000, stars: 3000, candles: 80, realLights: 4, bakeLights: 8 };
 
   const canvas = document.getElementById("scene");
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: Q.aa, powerPreference: "high-performance" });
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: false, stencil: false, powerPreference: "high-performance" });
   renderer.setPixelRatio(Q.dpr);
   renderer.setSize(innerWidth, innerHeight, false);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -61,7 +63,7 @@ function boot() {
 
   const scene = new THREE.Scene();
   const BG = new THREE.Color(0x07050d);
-  const FOG = new THREE.Color(0x0c0814);
+  const FOG = new THREE.Color(0x0c0814), FOG_SKY = new THREE.Color(0x0a0818);
   scene.background = BG.clone();
   scene.fog = new THREE.FogExp2(FOG.clone(), 0.05);
 
@@ -72,6 +74,7 @@ function boot() {
   composer.setSize(innerWidth, innerHeight);
   composer.addPass(new RenderPass(scene, camera));
   const bloom = new UnrealBloomPass(new THREE.Vector2(innerWidth, innerHeight), 0.62, 0.5, 0.92);
+  if (phone) { const set = bloom.setSize.bind(bloom); bloom.setSize = (w, h) => set(Math.max(1, Math.round(w / 2)), Math.max(1, Math.round(h / 2))); }
   composer.addPass(bloom);
   composer.addPass(new OutputPass());
 
@@ -198,14 +201,16 @@ function boot() {
   if (document.fonts && document.fonts.load) {
     document.fonts.load('38px "Tiro Devanagari Sanskrit"', "आकाश").then(() => {
       const t = canvasTex(1600, 1100, drawPages);
+      const old = pageMat.map;
       pageMat.map = t; pageMat.emissiveMap = t; pageMat.needsUpdate = true;
+      if (old) old.dispose();
     }).catch(() => {});
   }
 
   /* ------------------------------------------------------------ library */
   const AISLE = 2.6, BACK = 3.2, BAY = 3.0, Z0 = 8.5, Z1 = -64, LEVEL_H = 0.44, BOARD = 0.035, BASE_Y = 0.34, TOP = 8.9;
   const LEN = Z0 - Z1, ZC = (Z0 + Z1) / 2;
-  const wood = new THREE.MeshStandardMaterial({ map: woodMap, color: 0x8a6448, roughness: 0.78, metalness: 0 });
+  const wood = new THREE.MeshLambertMaterial({ map: woodMap, color: 0x8a6448 });
   const unitBox = new THREE.BoxGeometry(1, 1, 1);
   const m4 = new THREE.Matrix4(), q4 = new THREE.Quaternion(), v3 = new THREE.Vector3(), s3 = new THREE.Vector3();
   const structure = [];
@@ -231,15 +236,15 @@ function boot() {
   archZ.forEach((z, i) => { m4.compose(v3.set(0, TOP + 0.3, z), q4.identity(), s3.set(1, 1.25, 1)); arches.setMatrixAt(i, m4); });
   scene.add(arches);
 
-  const ceilMat = new THREE.MeshStandardMaterial({ color: 0x150f1c, roughness: 1, transparent: true, opacity: 1, depthWrite: true });
+  const ceilMat = new THREE.MeshLambertMaterial({ color: 0x150f1c, transparent: true, opacity: 1, depthWrite: true });
   const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(9, LEN), ceilMat);
   ceiling.rotation.x = Math.PI / 2; ceiling.position.set(0, TOP + 0.3 + (AISLE + 0.06) * 1.25 + 0.15, ZC);
   scene.add(ceiling);
 
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(BACK * 2 + 0.4, LEN), new THREE.MeshStandardMaterial({ map: floorMap, color: 0x9a8f9e, roughness: 0.55, metalness: 0.05 }));
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(BACK * 2 + 0.4, LEN), new THREE.MeshLambertMaterial({ map: floorMap, color: 0x9a8f9e }));
   floor.rotation.x = -Math.PI / 2; floor.position.set(0, 0, ZC);
   scene.add(floor);
-  const rug = new THREE.Mesh(new THREE.PlaneGeometry(1.5, LEN), new THREE.MeshStandardMaterial({ map: rugMap, roughness: 0.95 }));
+  const rug = new THREE.Mesh(new THREE.PlaneGeometry(1.5, LEN), new THREE.MeshLambertMaterial({ map: rugMap }));
   rug.rotation.x = -Math.PI / 2; rug.position.set(0, 0.006, ZC);
   scene.add(rug);
 
@@ -271,12 +276,86 @@ function boot() {
       rows.set(`${s}|${level}`, row);
     }
   }
-  const bookMat = new THREE.MeshStandardMaterial({ map: spineMap, roughness: 0.62, metalness: 0.05, emissive: 0xc8913a, emissiveMap: spineGlow, emissiveIntensity: 0.32 });
-  const books = new THREE.InstancedMesh(unitBox, bookMat, bookData.length);
+  // Books use baked lighting: each book's light from the aisle lamps and the sky is computed
+  // once on the CPU; only the two moving lights (lectern lamp, glowing book) are added per vertex.
+  const HEMI_SKY = new THREE.Color(0x3b3366), HEMI_GROUND = new THREE.Color(0x24160c), HEMI_I = 0.55;
+  const AISLE_COL = new THREE.Color(0xff9a50), AISLE_I = 14;
+  const lampPos = [];
+  for (let i = 0; i < Q.bakeLights; i++) lampPos.push(new THREE.Vector3((i % 2 ? 1 : -1) * 1.9, 2.7 + (i % 3) * 0.8, 4.5 - i * 4.6));
+  const bakeAttr = new Float32Array(bookData.length * 3);
+  {
+    const hemi = HEMI_SKY.clone().lerp(HEMI_GROUND, 0.5).multiplyScalar(HEMI_I);
+    const c = new THREE.Vector3(), L = new THREE.Vector3();
+    bookData.forEach((b, i) => {
+      c.set(b.x - b.s * b.d / 2, b.y, b.z);
+      let r = hemi.r, g = hemi.g, bl = hemi.b;
+      for (const p of lampPos) {
+        L.subVectors(p, c);
+        const d2 = L.lengthSq();
+        const cos = Math.max(0, (-b.s * L.x) / Math.sqrt(d2));
+        const k = (AISLE_I * cos) / Math.max(d2, 0.01);
+        r += AISLE_COL.r * k; g += AISLE_COL.g * k; bl += AISLE_COL.b * k;
+      }
+      bakeAttr[i * 3] = r / Math.PI; bakeAttr[i * 3 + 1] = g / Math.PI; bakeAttr[i * 3 + 2] = bl / Math.PI;
+    });
+  }
+  const bookU = {
+    uMap: { value: spineMap }, uGlow: { value: spineGlow }, uEmissive: { value: new THREE.Color(0xc8913a).multiplyScalar(0.32) },
+    uKeyPos: { value: new THREE.Vector3() }, uKeyCol: { value: new THREE.Color() },
+    uGlowPos: { value: new THREE.Vector3() }, uGlowCol: { value: new THREE.Color() },
+  };
+  const bookMat = new THREE.ShaderMaterial({
+    uniforms: THREE.UniformsUtils.merge([THREE.UniformsLib.fog, bookU]), fog: true,
+    vertexShader: `#include <common>
+      #include <fog_pars_vertex>
+      attribute vec3 aLight;
+      uniform vec3 uKeyPos, uKeyCol, uGlowPos, uGlowCol;
+      varying vec2 vUv; varying vec3 vCol; varying vec3 vLight;
+      vec3 pointL(vec3 lp, vec3 lc, vec3 wp, vec3 n){ vec3 d = lp - wp; float d2 = max(dot(d, d), 0.01);
+        return lc*max(dot(n, d*inversesqrt(d2)), 0.0)/d2*RECIPROCAL_PI; }
+      void main(){
+        vUv = uv;
+        vec4 wp = modelMatrix*instanceMatrix*vec4(position, 1.0);
+        vec3 n = normalize(mat3(modelMatrix)*mat3(instanceMatrix)*normal);
+        float face = abs(normal.x) > 0.5 ? 1.0 : (normal.y > 0.5 ? 0.6 : (normal.y < -0.5 ? 0.45 : 0.38));
+        vLight = aLight*face + pointL(uKeyPos, uKeyCol, wp.xyz, n) + pointL(uGlowPos, uGlowCol, wp.xyz, n);
+        #ifdef USE_INSTANCING_COLOR
+          vCol = instanceColor;
+        #else
+          vCol = vec3(1.0);
+        #endif
+        vec4 mvPosition = viewMatrix*wp;
+        gl_Position = projectionMatrix*mvPosition;
+        #include <fog_vertex>
+      }`,
+    fragmentShader: `#include <common>
+      #include <fog_pars_fragment>
+      uniform sampler2D uMap, uGlow; uniform vec3 uEmissive;
+      varying vec2 vUv; varying vec3 vCol; varying vec3 vLight;
+      void main(){
+        vec3 col = texture2D(uMap, vUv).rgb*vCol*vLight*1.08 + texture2D(uGlow, vUv).rgb*uEmissive;
+        gl_FragColor = vec4(col, 1.0);
+        #include <fog_fragment>
+      }`,
+  });
+  // UniformsUtils.merge clones textures' uniform objects by reference-safe copy; point them back at the shared ones
+  bookMat.uniforms.uMap.value = spineMap; bookMat.uniforms.uGlow.value = spineGlow;
+  // a book never shows the face against the wall: drop it (books on the right shelf are turned
+  // 180° so their spine, the +x face, still faces the aisle)
+  const bookGeo = unitBox.clone();
+  {
+    const idx = Array.from(bookGeo.index.array);
+    bookGeo.setIndex(idx.slice(0, 6).concat(idx.slice(12)));
+    bookGeo.clearGroups();
+  }
+  bookGeo.setAttribute("aLight", new THREE.InstancedBufferAttribute(bakeAttr, 3));
+  const books = new THREE.InstancedMesh(bookGeo, bookMat, bookData.length);
   const eLean = new THREE.Euler();
+  const qFlip = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI);
   function bookMatrix(b, pull) {
     eLean.set(b.lean, 0, 0);
     q4.setFromEuler(eLean);
+    if (b.s > 0) q4.premultiply(qFlip);
     m4.compose(v3.set(b.x - b.s * pull, b.y - (b.lean ? Math.abs(b.lean) * 0.02 : 0), b.z), q4, s3.set(b.d, b.h, b.t));
     return m4;
   }
@@ -286,7 +365,7 @@ function boot() {
 
   /* --- candles --- */
   const candleGeo = new THREE.CylinderGeometry(0.032, 0.036, 1, 10);
-  const candleMat = new THREE.MeshStandardMaterial({ color: 0xefe2cc, emissive: 0xffc88a, emissiveIntensity: 0.35, roughness: 0.5 });
+  const candleMat = new THREE.MeshLambertMaterial({ color: 0xefe2cc, emissive: 0xffc88a, emissiveIntensity: 0.35 });
   const candles = [];
   for (let i = 0; i < Q.candles; i++) {
     const side = R() < 0.5 ? -1 : 1;
@@ -333,13 +412,13 @@ function boot() {
 
   /* --- lights --- */
   scene.add(new THREE.HemisphereLight(0x3b3366, 0x24160c, 0.55));
-  const keyLight = new THREE.PointLight(0xffb070, 9, 0, 2);
+  const keyLight = new THREE.PointLight(0xffb070, 11, 0, 2);
   keyLight.position.set(1.1, 2.6, 2.6);
   scene.add(keyLight);
   const aisleLights = [];
-  for (let i = 0; i < Q.lights - 1; i++) {
-    const L = new THREE.PointLight(0xff9a50, 14, 0, 2);
-    L.position.set((i % 2 ? 1 : -1) * 1.9, 2.7 + (i % 3) * 0.8, 4.5 - i * 4.6);
+  for (let i = 0; i < Q.realLights; i++) {
+    const L = new THREE.PointLight(0xff9a50, AISLE_I, 0, 2);
+    L.position.copy(lampPos[i]);
     scene.add(L); aisleLights.push(L);
   }
   const skyLight = new THREE.DirectionalLight(0x8e7cff, 0);
@@ -430,6 +509,7 @@ function boot() {
       float fbm(vec3 p){ float v = 0.0, a = 0.5; for (int i = 0; i < 5; i++){ v += a*noise(p); p *= 2.03; a *= 0.5; } return v; }
       void main(){ vec3 d = normalize(vDir);
         float up = smoothstep(-0.1, 0.45, d.y);
+        if (up*uReveal < 0.002) { gl_FragColor = vec4(uBg, 1.0); return; }
         float n = fbm(d*2.6 + vec3(0.0, uTime*0.003, 0.0));
         float n2 = fbm(d*5.0 + 3.7);
         vec3 neb = mix(vec3(0.24,0.12,0.48), vec3(0.08,0.16,0.30), smoothstep(0.35,0.75,n2));
@@ -573,7 +653,8 @@ function boot() {
   const KEYS = [0, 0.13, 0.24, 0.32, 0.43, 0.54, 0.68, 0.84, 1.0];
   const CP = [[0, 1.95, 4.6], [0, 2.05, 3.85], [0, 2.3, 2.85], [0, 2.55, 1.4], [0, 2.15, -0.9], [0, 2.05, -1.4], [0, 2.3, -2.0], [0, 2.55, -3.55], [0, 2.6, -4.55]].map((a) => new THREE.Vector3(...a));
   const CL = [[0, 1.3, 0.1], [0, 1.95, -4], [0, 3.1, -3.6], [0, 6.0, -9], [0, 8.6, -14], [0, 5.4, -10], [0, 3.9, -7], [0, 2.7, -6], [0, 2.56, -6]].map((a) => new THREE.Vector3(...a));
-  const tmpA = new THREE.Vector3(), tmpB = new THREE.Vector3();
+  const tmpA = new THREE.Vector3(), tmpB = new THREE.Vector3(), tmpColor = new THREE.Color();
+  const tmpQ1 = new THREE.Quaternion(), tmpQ2 = new THREE.Quaternion(), tmpM = new THREE.Matrix4(), tmpE = new THREE.Euler();
   function catmull(arr, i, u, out) {
     const p0 = arr[Math.max(0, i - 1)], p1 = arr[i], p2 = arr[Math.min(arr.length - 1, i + 1)], p3 = arr[Math.min(arr.length - 1, i + 2)];
     const u2 = u * u, u3 = u2 * u;
@@ -708,6 +789,7 @@ function boot() {
     if (pulled) { putBack(); return; }
     if (!interactive() && P > 0.86) { startTurn(); return; }
     if (!interactive()) return;
+    if (hovered >= 0) { pull(hovered); return; }   // the book the visitor sees highlighted
     if (hitBookOnLectern(e.clientX, e.clientY)) { startTurn(); return; }
     pull(pickBook(e.clientX, e.clientY));
   });
@@ -729,12 +811,12 @@ function boot() {
   const pos = new THREE.Vector3(), look = new THREE.Vector3(), dir = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0), right = new THREE.Vector3();
   const loading = document.querySelector(".rail .loading");
   if (loading) loading.textContent = "Building the library…";
-  let last = performance.now(), frameN = 0, slowFrames = 0, quality = 1;
+  let last = performance.now(), frameN = 0;
   let started = false, verySlow = 0;
+  // switch to the video version for the rest of this visit (works inside embedded previews too)
   function toFilm() {
-    const u = new URL(location.href);
-    u.searchParams.set("film", "");
-    location.replace(u.toString().replace("film=", "film"));
+    try { sessionStorage.setItem("vs-film", "1"); } catch (e) {}
+    location.reload();
   }
   canvas.addEventListener("webglcontextlost", (e) => { e.preventDefault(); toFilm(); });
   const clock0 = performance.now();
@@ -767,9 +849,10 @@ function boot() {
     vortexU.uSpin.value = lerp(1.0, 0.35, toSky);
     vortexU.uCenter.value.set(0, lerp(3.25, 14.5, toSky), lerp(-3.6, -15, toSky));
     sky.material.uniforms.uReveal.value = toSky;
+    sky.visible = toSky > 0.001;
     ceilMat.opacity = 1 - toSky; ceiling.visible = ceilMat.opacity > 0.01;
     scene.fog.density = lerp(0.05, 0.032, toSky);
-    scene.fog.color.copy(FOG).lerp(new THREE.Color(0x0a0818), toSky);
+    scene.fog.color.copy(FOG).lerp(FOG_SKY, toSky);
     skyLight.intensity = toSky * 0.9;
 
     // the book rises up and over the reader, then settles ahead in the aisle
@@ -792,7 +875,11 @@ function boot() {
     coreGlow.material.opacity = Math.min(0.6, starAmt * 0.3 + rad * 0.45); coreGlow.scale.setScalar(0.18 + 0.22 * rad + 0.12 * starAmt);
     bookLight.intensity = 0.6 * starAmt + 1.6 * rad;
     pageMat.emissiveIntensity = 0.03 + 0.05 * starAmt + 0.14 * rad;
-    keyLight.intensity = lerp(9, 5, lift);
+    keyLight.intensity = lerp(11, 6, lift);
+    bookMat.uniforms.uKeyPos.value.copy(keyLight.position);
+    bookMat.uniforms.uKeyCol.value.copy(keyLight.color).multiplyScalar(keyLight.intensity);
+    bookLight.getWorldPosition(bookMat.uniforms.uGlowPos.value);
+    bookMat.uniforms.uGlowCol.value.copy(bookLight.color).multiplyScalar(bookLight.intensity);
 
     // pages: click to turn in the library; flip on their own at the end
     if (!turning && P > 0.86 && P < 0.995 && !recording) turning = { t: 0, dur: 0.85 };
@@ -825,7 +912,7 @@ function boot() {
       if (pulled && pulled.id === id) { pullAnim.delete(id); continue; }
       books.setMatrixAt(id, bookMatrix(b, n));
       const c = tmpB.set(b.c.r, b.c.g, b.c.b).multiplyScalar(1 + 6 * n);
-      books.setColorAt(id, new THREE.Color(c.x, c.y, c.z));
+      books.setColorAt(id, tmpColor.setRGB(c.x, c.y, c.z));
       if (Math.abs(n - target) < 0.001 && target === 0) { pullAnim.delete(id); books.setMatrixAt(id, bookMatrix(b, 0)); books.setColorAt(id, b.c); }
       else pullAnim.set(id, n);
       books.instanceMatrix.needsUpdate = true; books.instanceColor.needsUpdate = true;
@@ -837,8 +924,8 @@ function boot() {
       const k = sstep(0, 1, pulled.t);
       const front = tmpA.copy(camera.position).add(tmpB.copy(dir).multiplyScalar(0.9)).addScaledVector(up, innerWidth / innerHeight < 0.8 ? 0.16 : 0.13).addScaledVector(right, innerWidth / innerHeight < 0.8 ? 0 : -0.12);
       pulledMesh.position.lerpVectors(pulled.from, front, k);
-      const faceQ = new THREE.Quaternion().setFromRotationMatrix(new THREE.Matrix4().lookAt(pulledMesh.position, camera.position, up));
-      const tilt = new THREE.Quaternion().setFromEuler(new THREE.Euler(0, Math.sin(t * 0.8) * 0.12, 0.08));
+      const faceQ = tmpQ1.setFromRotationMatrix(tmpM.lookAt(pulledMesh.position, camera.position, up));
+      const tilt = tmpQ2.setFromEuler(tmpE.set(0, Math.sin(t * 0.8) * 0.12, 0.08));
       faceQ.multiply(tilt);
       pulledMesh.quaternion.copy(pulled.fromQ).slerp(faceQ, k);
       if (pulled.dir < 0 && pulled.t <= 0) {
@@ -850,14 +937,30 @@ function boot() {
     }
   }
 
-  function frame(now) {
-    requestAnimationFrame(frame);
-    if (document.hidden) { last = now; return; }
-    const dt = Math.min(0.05, (now - last) / 1000);
+  /* ---------- frame loop ----------
+     Runs inside GSAP's ticker, right after Lenis moves the page, so the camera and the scroll
+     position always update in the same frame. Resolution adapts continuously to hold ~60fps. */
+  let scale = 1;                     // fraction of Q.dpr currently in use
+  const SCALE_MIN = phone ? 0.6 : 0.55, SCALE_MAX = Q.dprMax / Q.dpr;
+  let winT = 0, winN = 0, winSlow = 0, goodWins = 0, lastChange = 0, idle = false, lastP = -1, skipNext = false, earlyT = 0, earlyN = 0;
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) { skipNext = true; last = performance.now(); } });
+  renderer.info.autoReset = false;
+  const fpsEl = /[?&#]fps\b/.test(location.search + location.hash) ? Object.assign(document.body.appendChild(document.createElement("div")), { className: "fps-meter" }) : null;
+  function setScale(k) {
+    scale = clamp(k, SCALE_MIN, SCALE_MAX);
+    renderer.setPixelRatio(Q.dpr * scale); composer.setPixelRatio(Q.dpr * scale); resize();
+  }
+  function tick() {
+    const now = performance.now();
+    const rawDt = (now - last) / 1000;
+    const dt = Math.min(0.05, rawDt);
     last = now;
+    // after the journey the scene is a dimmed backdrop: draw one settled frame, then rest
+    const settled = Ptarget > 0.999 && Math.abs(P - Ptarget) < 0.0005 && !pulled && !turning;
+    if (settled && idle && Math.abs(P - lastP) < 1e-6) return;
+    idle = settled; lastP = P;
     frameN++;
-    // after the journey the scene sits dimmed behind the content: render it less often
-    if (P > 0.999 && Ptarget > 0.999 && frameN % 3) return;
+    renderer.info.reset();
     update(dt, (now - clock0) / 1000);
     composer.render(dt);
     if (!started) {
@@ -865,31 +968,67 @@ function boot() {
       document.documentElement.classList.add("scene-ready");
       if (loading) { loading.textContent = "The library is ready"; setTimeout(() => loading.classList.add("done"), 1200); }
     }
-    // adapt to slower devices; if even the lightest setting can't keep up, use the video version
-    if (frameN > 30 && frameN < 420 && !recording) {
-      if (dt > 1 / 38) slowFrames++; else slowFrames = Math.max(0, slowFrames - 1);
-      if (slowFrames > 40 && quality > 0.6) {
-        quality -= 0.2; slowFrames = 0;
-        renderer.setPixelRatio(Q.dpr * quality); composer.setPixelRatio(Q.dpr * quality); resize();
-      }
-      if (quality <= 0.6) { if (dt > 1 / 10) verySlow++; else verySlow = Math.max(0, verySlow - 2); }
-      if (verySlow > 30) toFilm();
+    if (recording || settled || frameN < 3) return;
+    // adaptive resolution, judged over half-second windows
+    if (skipNext) { skipNext = false; return; }   // first frame back from a background tab
+    const sample = Math.min(rawDt, 1);
+    // a device far too slow for 3D (under ~5fps from the start) goes straight to the video
+    if (frameN > 8 && frameN < 40) { earlyT += sample; earlyN++; if (earlyN === 12 && earlyT / earlyN > 0.2) { toFilm(); return; } }
+    winT += sample; winN++; if (sample > 1 / 45) winSlow++;
+    if (winT < 0.5) return;
+    const avg = winT / winN, slowShare = winSlow / winN;
+    winT = 0; winN = 0; winSlow = 0;
+    if (frameN < 20) return;
+    if (fpsEl) fpsEl.textContent = `${Math.round(1 / avg)} fps · ${(Q.dpr * scale).toFixed(2)}x · ${renderer.info.render.calls} draws`;
+    if (avg > 1 / 50 || slowShare > 0.25) {
+      goodWins = 0;
+      if (scale > SCALE_MIN && now - lastChange > 900) { setScale(scale * 0.85); lastChange = now; }
+      else if (scale <= SCALE_MIN + 1e-3 && avg > 1 / 18) { verySlow++; if (verySlow >= 6) toFilm(); }
+    } else {
+      verySlow = 0;
+      if (avg < 1 / 57 && ++goodWins >= 6 && scale < SCALE_MAX && now - lastChange > 3000) { setScale(scale * 1.1); lastChange = now; goodWins = 0; }
     }
   }
+  addEventListener("resize", () => { idle = false; });
+  addEventListener("vs:progress", () => { idle = false; });
+  canvas.addEventListener("pointermove", () => { idle = false; });
   updateCandles(0);
-  try { renderer.compile(scene, camera); } catch (e) { /* compile lazily */ }
   // ?record&manual: no render loop; a capture script steps frames on a virtual clock
   const manual = recording && /[?&]manual\b/.test(location.search);
   let vt = 0;
-  if (manual) {
-    window.VS3D_frame = (dt) => {
-      vt += dt; frameN++;
-      update(dt, vt); composer.render(dt);
-      if (!started) { started = true; document.documentElement.classList.add("scene-ready"); if (loading) loading.classList.add("done"); }
-    };
-    window.VS3D_frame(1 / 30);
-  } else requestAnimationFrame(frame);
-  window.VS3D = { setProgress: (p) => { Ptarget = p; }, pull, startTurn, pick: pickBook, state: () => ({ P, hovered, pulled: !!pulled, inside: pointer.inside, n: bookData.length }) };
+  const startLoop = () => {
+    if (manual) {
+      window.VS3D_frame = (dt) => {
+        vt += dt; frameN++;
+        const gl = renderer.getContext();
+        const px = new Uint8Array(4);
+        renderer.info.autoReset = false; renderer.info.reset();
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+        const t0 = performance.now();
+        update(dt, vt);
+        const t1 = performance.now();
+        composer.render(dt);
+        gl.readPixels(0, 0, 1, 1, gl.RGBA, gl.UNSIGNED_BYTE, px);
+        const t2 = performance.now();
+        window.VS3D_last = { upd: t1 - t0, rnd: t2 - t1, calls: renderer.info.render.calls, tris: renderer.info.render.triangles, pts: renderer.info.render.points };
+        if (!started) { started = true; document.documentElement.classList.add("scene-ready"); if (loading) loading.classList.add("done"); }
+      };
+      window.VS3D_frame(1 / 30);
+    } else if (window.gsap) {
+      last = performance.now();
+      window.gsap.ticker.add(tick);
+    } else {
+      const loop = () => { requestAnimationFrame(loop); if (!document.hidden) tick(); };
+      requestAnimationFrame(loop);
+    }
+  };
+  // compile every shader before the first frame (in parallel where the browser supports it),
+  // so nothing stutters the first time the vortex or the sky appears
+  sky.visible = true;
+  const warm = renderer.compileAsync ? renderer.compileAsync(scene, camera) : Promise.resolve(renderer.compile(scene, camera));
+  warm.catch(() => {}).then(() => { sky.visible = false; startLoop(); });
+  if (recording) window.VS3D_dbg = { THREE, scene, renderer, composer, bloom, sky, keyLight, aisleLights, books, structMesh, floor, rug, ceiling, wood, bookMat, candleMat, points: scene.children.filter((o) => o.isPoints), book, arches };
+  window.VS3D = { setProgress: (p) => { Ptarget = p; }, pull, startTurn, pick: pickBook, state: () => ({ P, hovered, pulled: !!pulled, inside: pointer.inside, n: bookData.length, frames: frameN, scale }) };
 }
 
 if (document.documentElement.dataset.mode === "3d") boot();

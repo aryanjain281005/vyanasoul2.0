@@ -3,7 +3,7 @@
 A single-page site for Vyana Soul that opens with a journey through the Akashic library. It runs in one of two modes, picked automatically:
 
 - **3D (default):** a real-time library built in the browser with Three.js. Scrolling moves the camera through five scenes, and visitors can look around and interact.
-- **Film:** your graded video, scrubbed frame by frame with scroll. Used for reduced-motion users, browsers without WebGL2, devices too slow for the 3D, or anyone who adds `?film` to the URL.
+- **Film:** your graded video, scrubbed frame by frame with scroll. Used for reduced-motion users, browsers without WebGL2, devices too slow for the 3D (it switches automatically), or anyone who adds `?film` or `#film` to the URL.
 
 | Chapter | Sanskrit | 3D scene | Video scene | What it says |
 |---|---|---|---|---|
@@ -28,6 +28,14 @@ How it's built (`src3d/app.js`, bundled to `app3d.js`):
 - particle shaders for the dust, the vortex (which becomes the galaxy), and the falling stars; a procedural nebula sky
 - glow from Three.js bloom post-processing with filmic tone mapping
 - phones get fewer books, particles and lights; any device that runs slowly steps down its resolution, and if it still can't keep up it switches to the film version
+
+Performance:
+- book lighting is baked once on load (each book's light from the aisle lamps and sky), so the 15,000+ books cost almost nothing to light; only the lectern lamp and the glowing book are lit live
+- the wood, floor and candles use a cheap lighting model with four live lights (two on phones)
+- the scene is drawn in the same frame as the smooth scroll, so the camera never lags the page
+- resolution adapts every half second to hold about 60 fps, and rises again on fast GPUs
+- once the visitor scrolls past the journey, the scene stops rendering entirely
+- add `#fps` to the URL to see the frame rate, resolution and draw calls in the corner
 
 To change the 3D scene, edit `src3d/app.js` and rebuild:
 
