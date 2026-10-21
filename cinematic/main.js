@@ -2,6 +2,8 @@
 (() => {
   const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
   const recording = /[?&]record\b/.test(location.search); // deterministic capture for walkthrough videos
+  // "3d": the WebGL library (app3d.js) draws the film; "frames": the graded video frames are drawn here
+  const mode3d = document.documentElement.dataset.mode === "3d";
   gsap.registerPlugin(ScrollTrigger);
 
   /* ---------- smooth scroll (skipped for reduced motion) ---------- */
@@ -35,7 +37,7 @@
   };
   const INK = "#08060f";
   const canvas = document.getElementById("film");
-  const ctx = canvas.getContext("2d", { alpha: false });
+  const ctx = mode3d ? null : canvas.getContext("2d", { alpha: false });
   const pctEl = document.getElementById("load-pct");
   const loadingEl = document.querySelector(".rail .loading");
 
@@ -136,7 +138,7 @@
     drawnIndex = idx;
   }
 
-  gsap.ticker.add(() => {
+  if (!mode3d) gsap.ticker.add(() => {
     const d = target - current;
     if (Math.abs(d) > 0.02) { current += reduceMotion || recording ? d : d * 0.25; needsDraw = true; }
     else if (current !== target) { current = target; needsDraw = true; }
@@ -144,7 +146,7 @@
   });
 
   // a few pixels of drift against the cursor gives the light some depth (desktop only)
-  if (!reduceMotion && !recording && matchMedia("(pointer: fine)").matches) {
+  if (!mode3d && !reduceMotion && !recording && matchMedia("(pointer: fine)").matches) {
     gsap.set(canvas, { scale: 1.03 });
     const xTo = gsap.quickTo(canvas, "x", { duration: 1.6, ease: "power3" });
     const yTo = gsap.quickTo(canvas, "y", { duration: 1.6, ease: "power3" });
@@ -178,9 +180,13 @@
       end: "bottom bottom",
       scrub: reduceMotion || recording ? true : 0.5,
       onUpdate: (self) => {
+        setActive(self.progress);
+        if (mode3d) {
+          window.dispatchEvent(new CustomEvent("vs:progress", { detail: { p: self.progress, v: self.getVelocity() } }));
+          return;
+        }
         if (!set) return;
         target = self.progress * (set.n - 1);
-        setActive(self.progress);
       },
     },
   });
@@ -231,6 +237,7 @@
   /* ---------- resize ---------- */
   let lastSet = null;
   function onResize() {
+    if (mode3d) return;
     sizeCanvas();
     const s = pickSet();
     if (s !== lastSet) { lastSet = s; loadSet(); }
@@ -239,6 +246,7 @@
   addEventListener("resize", () => { clearTimeout(rT); rT = setTimeout(onResize, 150); });
   onResize();
   setActive(0);
+  window.VS = { scrollToY, prologue, reduceMotion, recording };
 
   /* ---------- booking form → WhatsApp ---------- */
   const form = document.getElementById("book-form");

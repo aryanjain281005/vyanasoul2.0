@@ -11,8 +11,18 @@
   <meta property="og:image" content="assets/og.jpg">
   <meta property="og:type" content="website">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
-  <link rel="preload" as="image" href="frames/desktop/f000.webp" media="(min-aspect-ratio: 4/5)">
-  <link rel="preload" as="image" href="frames/mobile/f000.webp" media="(max-aspect-ratio: 4/5)">
+  <script>
+    /* 3D library when WebGL2 is available; the graded video otherwise, for reduced motion, or with ?film */
+    (function () {
+      var d = document.documentElement, mode = "frames";
+      try {
+        var forced = /[?&]film\b/.test(location.search);
+        var calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (!forced && !calm && document.createElement("canvas").getContext("webgl2")) mode = "3d";
+      } catch (e) {}
+      d.dataset.mode = mode;
+    })();
+  </script>
   <link rel="preload" as="font" type="font/woff2" href="fonts/bodoni-moda-latin-standard-normal.woff2" crossorigin>
   <link rel="stylesheet" href="styles.css">
   <noscript><style>.chapter{opacity:1!important;visibility:visible!important;position:relative!important}.stage{position:relative!important;height:auto!important}.prologue{height:auto!important;background:url(frames/desktop/f000.webp) center/cover}.rail{display:none}</style></noscript>
@@ -36,10 +46,17 @@
   </header>
 
   <canvas id="film" aria-hidden="true"></canvas>
+  <canvas id="scene" aria-label="A candle-lit library you can look around. Move the pointer to look, click a book on the shelves to pull it out."></canvas>
   <div id="veil" aria-hidden="true"></div>
   <div class="grain" aria-hidden="true"></div>
 
   <div class="progress-line" aria-hidden="true"><span></span></div>
+
+  <div class="record-card" id="record-card" role="dialog" aria-modal="false" aria-labelledby="rc-quote" hidden>
+    <blockquote><p id="rc-quote"></p></blockquote>
+    <p class="rc-who" id="rc-who"></p>
+    <button type="button" class="btn btn-ghost btn-sm" id="rc-close">Return it to the shelf</button>
+  </div>
 
   <main id="top">
     <section class="prologue" id="prologue" aria-label="Introduction">
@@ -52,6 +69,7 @@
             <a class="btn btn-gold" href="#book">Book a session</a>
             <a class="btn btn-ghost" href="https://wa.me/919987487242?text=Namaste%20Rekha%20ji%2C%20I%27d%20like%20to%20know%20more%20about%20a%20session." target="_blank" rel="noopener">Message on WhatsApp</a>
           </div>
+          <p class="explore-hint only-3d"><span class="hint-fine">Move to look around. Click a book on the shelves to pull it out, or the open book to turn its page.</span><span class="hint-touch">Swipe sideways to look around. Tap a book on the shelves to pull it out.</span> <button type="button" class="link-btn" id="pull-record">Pull a record for me</button></p>
           <p class="scroll-hint"><span></span>Scroll to begin</p>
         </article>
 
@@ -327,5 +345,6 @@
   <script src="vendor/ScrollTrigger.min.js"></script>
   <script src="vendor/lenis.min.js"></script>
   <script src="main.js"></script>
+  <script type="module" src="app3d.js"></script>
 </body>
 </html>

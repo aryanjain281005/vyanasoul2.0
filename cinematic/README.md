@@ -1,16 +1,40 @@
 # Vyana Soul — cinematic site
 
-A single-page site for Vyana Soul built around a scroll-driven film. As you scroll, the film plays in five chapters:
+A single-page site for Vyana Soul that opens with a journey through the Akashic library. It runs in one of two modes, picked automatically:
 
-| Chapter | Sanskrit | Scene in the film | What it says |
-|---|---|---|---|
-| 1 | अभिलेख (record) | A candle-lit library with an open book | Every soul keeps a record |
-| 2 | पठन (reading) | A golden vortex opens in the library | What a reading is |
-| 3 | आकाश (Akasha) | The ceiling opens onto the cosmos | What the Akashic Records are |
-| 4 | उपचार (healing) | Light and stars pour into a floating book | Lama Fera and Pranic Healing |
-| 5 | स्पष्टता (clarity) | The book opens in radiant light | 600+ sessions, book a session |
+- **3D (default):** a real-time library built in the browser with Three.js. Scrolling moves the camera through five scenes, and visitors can look around and interact.
+- **Film:** your graded video, scrubbed frame by frame with scroll. Used for reduced-motion users, browsers without WebGL2, devices too slow for the 3D, or anyone who adds `?film` to the URL.
 
-After the film the page continues with Rekha, sessions, how a session works, courses, reviews, photos, questions and the booking form.
+| Chapter | Sanskrit | 3D scene | Video scene | What it says |
+|---|---|---|---|---|
+| 1 | अभिलेख (record) | Candle-lit aisle, open book on a lectern | Library with the open book | Every soul keeps a record |
+| 2 | पठन (reading) | A golden vortex forms in the aisle | Golden vortex | What a reading is |
+| 3 | आकाश (Akasha) | The vault dissolves into the cosmos | Ceiling opens onto the cosmos | What the Akashic Records are |
+| 4 | उपचार (healing) | The book rises; stars fall into it | Stars pour into the floating book | Lama Fera and Pranic Healing |
+| 5 | स्पष्टता (clarity) | Close-up of the book in radiant light | Radiant open book | 600+ sessions, book a session |
+
+After the journey the page continues with Rekha, sessions, how a session works, courses, reviews, photos, questions and the booking form.
+
+## The 3D library
+
+What visitors can do:
+- move the pointer (or swipe sideways on a phone) to look around; drag to turn further
+- watch the gold dust swirl away from the cursor
+- hover a book on the shelves to slide it out, click it to bring it to you and read one of the client reviews, click again or press Escape to put it back
+- click the open book on the lectern to turn a page; "Pull a record for me" does the same for keyboard users
+
+How it's built (`src3d/app.js`, bundled to `app3d.js`):
+- everything is generated in code: about 17,000 instanced books, shelves and arches, floating candles with flickering flames, a rug and stone floor, and a book whose pages carry real Devanagari text drawn on a canvas
+- particle shaders for the dust, the vortex (which becomes the galaxy), and the falling stars; a procedural nebula sky
+- glow from Three.js bloom post-processing with filmic tone mapping
+- phones get fewer books, particles and lights; any device that runs slowly steps down its resolution, and if it still can't keep up it switches to the film version
+
+To change the 3D scene, edit `src3d/app.js` and rebuild:
+
+```bash
+npm i three esbuild
+npx esbuild src3d/app.js --bundle --minify --format=esm --target=es2020 --outfile=app3d.js
+```
 
 ## Run it locally
 
@@ -32,7 +56,8 @@ It's plain HTML, CSS and JS with no build step. On Vercel, set the project's roo
 ```
 index.html        page markup and all copy
 styles.css        design tokens and layout
-main.js           film player, chapter timing, smooth scroll, booking form
+main.js           chapter timing, smooth scroll, booking form, and the film player
+app3d.js          the 3D library (bundled from src3d/app.js, includes Three.js)
 frames/desktop/   239 frames, 1920×1080 WebP
 frames/mobile/    239 frames, 810×1440 WebP, used when the screen is portrait
 assets/           Rekha's photos, favicon, social preview image
@@ -67,7 +92,8 @@ python3 film-src/grade.py src graded 0 1
 ## Editing text and timing
 
 - Chapter text lives in `index.html` inside `#stage`. Each `.chapter` has `data-in` and `data-out`, the scroll progress (0 to 1) where it fades in and out. Progress 0.1 is 1 second into the video. Current windows: library 0–0.12, vortex 0.165–0.30, cosmos 0.345–0.515, light into the book 0.57–0.765, radiant book from 0.905.
-- How long the film lasts on screen is the `.prologue` height in `styles.css` (900vh on desktop, 760vh on phones).
+- How long the journey lasts on screen is the `.prologue` height in `styles.css`: 1000vh on desktop and 820vh on phones in 3D mode, 900vh and 760vh in film mode.
+- The 3D scene follows the same progress windows; its camera path is `KEYS`, `CP` and `CL` in `src3d/app.js`.
 
 ## Booking form
 
