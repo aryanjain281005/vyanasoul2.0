@@ -815,6 +815,7 @@ function boot() {
   let started = false, verySlow = 0;
   // switch to the video version for the rest of this visit (works inside embedded previews too)
   function toFilm() {
+    window.name = "vs-film";                      // survives the reload even where storage is blocked
     try { sessionStorage.setItem("vs-film", "1"); } catch (e) {}
     location.reload();
   }

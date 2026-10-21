@@ -72,7 +72,7 @@ html[data-mode="3d"].scene-ready #scene { opacity: 1; }
 .site-header {
   position: fixed; inset: 0 0 auto 0; z-index: 20;
   display: flex; align-items: center; gap: 28px;
-  padding: 18px var(--pad);
+  padding: calc(18px + env(safe-area-inset-top, 0px)) var(--pad) 18px;
   background: linear-gradient(to bottom, rgba(8, 6, 15, 0.72), rgba(8, 6, 15, 0));
   transition: background-color .4s, box-shadow .4s;
 }

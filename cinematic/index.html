@@ -17,6 +17,7 @@
       var d = document.documentElement, mode = "frames";
       try {
         var forced = /[?&]film\b/.test(location.search) || location.hash === "#film";
+        forced = forced || window.name === "vs-film";
         try { forced = forced || sessionStorage.getItem("vs-film") === "1"; } catch (e) {}
         var calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
         if (!forced && !calm && document.createElement("canvas").getContext("webgl2")) mode = "3d";
