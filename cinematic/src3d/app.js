@@ -415,7 +415,7 @@ function boot() {
   lectern.add(post, foot, top);
   lectern.position.set(0, 0, 1.0);
   scene.add(lectern);
-  const BOOK_A = new THREE.Vector3(0, 1.035, 1.0), BOOK_B = new THREE.Vector3(0, 2.55, -6.0);
+  const BOOK_A = new THREE.Vector3(0, 1.035, 1.0), BOOK_B = new THREE.Vector3(0, 2.55, -6.0), BOOK_C = new THREE.Vector3(0, 5.6, -3.2);
 
   /* ------------------------------------------------------------ sky */
   const sky = new THREE.Mesh(new THREE.SphereGeometry(160, 48, 24), new THREE.ShaderMaterial({
@@ -772,10 +772,15 @@ function boot() {
     scene.fog.color.copy(FOG).lerp(new THREE.Color(0x0a0818), toSky);
     skyLight.intensity = toSky * 0.9;
 
-    const lift = sstep(0.49, 0.6, P);
-    book.position.lerpVectors(BOOK_A, BOOK_B, lift);
+    // the book rises up and over the reader, then settles ahead in the aisle
+    const lift = sstep(0.46, 0.6, P);
+    const k1 = 1 - lift;
+    book.position.set(0, 0, 0)
+      .addScaledVector(BOOK_A, k1 * k1)
+      .addScaledVector(BOOK_C, 2 * k1 * lift)
+      .addScaledVector(BOOK_B, lift * lift);
     book.position.y += Math.sin(t * 0.9) * 0.035 * lift;
-    book.rotation.set(lerp(0.42, 1.2, lift), Math.sin(t * 0.35) * 0.08 * lift, 0);
+    book.rotation.set(lerp(0.42, 1.2, lift) + Math.sin(lift * Math.PI) * 0.5, Math.sin(t * 0.35) * 0.08 * lift + Math.sin(lift * Math.PI) * 0.6, 0);
     const starAmt = sstep(0.55, 0.63, P) * (1 - sstep(0.9, 0.98, P));
     starsU.uAmount.value = starAmt;
     starsU.uFrom.value.copy(vortexU.uCenter.value);
