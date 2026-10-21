@@ -15,6 +15,18 @@ A single-page site for Vyana Soul that opens with a journey through the Akashic 
 
 After the journey the page continues with Rekha, sessions, how a session works, courses, reviews, photos, questions and the booking form.
 
+## Design system
+
+After the journey the page is a quiet "reading room". All values are tokens at the top of `styles.css`:
+
+- **Colour:** four ink surfaces (`--ink-0` page to `--ink-3` raised), three text tiers, gold kept for actions and key facts, and one parchment surface for the booking card. Every text pair passes WCAG AA (the lowest, muted text on a card, is 6.9:1); control borders are 3:1 or more.
+- **Type:** Bodoni Moda for headings and quotes only, Hanken Grotesk for everything you read or tap, on a fluid scale (`--fs-sm` 14px to `--fs-3xl` 80px).
+- **Space and shape:** a 4px spacing scale, radii 10 / 14 / 22 / pill, two shadows, and three motion speeds (120 / 200 / 320 ms) with one easing.
+- **Components:** buttons in four roles (primary gold, secondary, gold outline, ink on parchment), each with hover, pressed, focus, disabled and loading states; contact rows; choice cards (visible radios); help strips; the course table that turns into cards below 960px.
+- **Breakpoints follow the content:** the booking card lays itself out by its own width (container queries at 500 and 620px); the header nav appears at 960px; sessions go three across at 1100px; the chapter rail needs 1100px.
+
+Accessibility: skip link, visible focus everywhere, 44px minimum tap targets, labelled controls with linked error messages, information never carried by colour alone (level pips also say the level; choices show a filled dot), a menu that keeps focus inside while open and returns it on close, and reduced motion respected (still film, no smooth scroll, no looping hint, instant answers).
+
 ## The 3D library
 
 What visitors can do:
@@ -57,14 +69,20 @@ python3 -m http.server 8000
 
 ## Deploy
 
-It's plain HTML, CSS and JS with no build step. On Vercel, set the project's root directory to `cinematic/` and deploy; `vercel.json` adds long cache headers for the frames and fonts. Netlify, GitHub Pages or any static host also works.
+It's plain HTML, CSS and JS with no build step. The live copy is served by GitHub Pages from the `gh-pages` branch, which holds this folder's contents:
+
+```bash
+git push origin $(git subtree split --prefix cinematic HEAD):refs/heads/gh-pages --force
+```
+
+On Vercel, set the project's root directory to `cinematic/`; `vercel.json` adds long cache headers for the frames and fonts. Netlify or any static host also works.
 
 ## Files
 
 ```
 index.html        page markup and all copy
 styles.css        design tokens and layout
-main.js           chapter timing, smooth scroll, booking form, and the film player
+main.js           chapter timing, smooth scroll, header menu and current section, questions, booking form, film player
 app3d.js          the 3D library (bundled from src3d/app.js, includes Three.js)
 frames/desktop/   239 frames, 1920×1080 WebP
 frames/mobile/    239 frames, 810×1440 WebP, used when the screen is portrait
@@ -103,9 +121,19 @@ python3 film-src/grade.py src graded 0 1
 - How long the journey lasts on screen is the `.prologue` height in `styles.css`: 1000vh on desktop and 820vh on phones in 3D mode, 900vh and 760vh in film mode.
 - The 3D scene follows the same progress windows; its camera path is `KEYS`, `CP` and `CL` in `src3d/app.js`.
 
+## Navigation
+
+- Wide screens get the header nav, which underlines the section you're reading. Below 960px a menu button opens a full-screen sheet with every section plus WhatsApp and call shortcuts; Escape or choosing a link closes it.
+- "Skip the journey" sits under the hero (and as the first Tab stop) for anyone who doesn't want to scroll through the film.
+- In-page links move keyboard focus with the scroll.
+
 ## Booking form
 
-The form checks the fields, then opens WhatsApp with the request filled in, addressed to +91 99874 87242. To send it to the existing Supabase booking function instead, replace the `window.open(...)` part of the submit handler in `main.js` with a `fetch` POST to that endpoint.
+Only a name and a session are required. Sessions and times are tappable choices; "Book this session" on a session card picks that session and jumps to the form. Days in the past can't be chosen, and Saturday or Sunday picks show the hours for that day. A draft is kept for the tab, so a reload or a trip to WhatsApp and back doesn't lose it.
+
+Sending opens WhatsApp with the request filled in, addressed to +91 99874 87242, and the card switches to a confirmation with the request text, "Open WhatsApp again", "Copy request" and "Edit request". If the browser blocks the new tab, the confirmation says so. There's an email route in the form and on the confirmation.
+
+To send requests to the existing Supabase booking function instead, replace the `window.open(...)` part of the submit handler in `main.js` with a `fetch` POST to that endpoint.
 
 ## Please confirm before going live
 

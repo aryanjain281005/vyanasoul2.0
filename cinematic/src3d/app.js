@@ -699,8 +699,8 @@ function boot() {
   const cardClose = document.getElementById("rc-close");
   const REVIEWS = [...document.querySelectorAll("#reviews figure")].map((f) => ({
     q: f.querySelector("blockquote p").textContent.trim(),
-    w: f.querySelector("figcaption").childNodes[0].textContent.trim(),
-    s: (f.querySelector("figcaption span") || {}).textContent || "",
+    w: (f.querySelector(".r-who") || f.querySelector("figcaption")).textContent.trim(),
+    s: ((f.querySelector(".r-what") || {}).textContent || "").trim(),
   }));
   REVIEWS.push({ q: "The records hold no judgement, only compassion and wisdom for your soul's highest good.", w: "Rekha Bala", s: "" });
   let reviewIdx = 0;
@@ -750,13 +750,23 @@ function boot() {
     hovered = -1; canvas.style.cursor = "";
     const r = REVIEWS[reviewIdx++ % REVIEWS.length];
     cardQuote.textContent = r.q; cardWho.textContent = r.s ? `${r.w}, ${r.s}` : r.w;
+    // remember where focus was, so closing the card can hand it back
+    const ae = document.activeElement;
+    returnFocus = ae && ae !== document.body && ae !== card && !card.contains(ae) ? ae : null;
     setTimeout(() => { card.hidden = false; requestAnimationFrame(() => card.classList.add("open")); cardClose.focus({ preventScroll: true }); }, 650);
   }
+  let returnFocus = null;
   function putBack() {
     if (!pulled || pulled.dir < 0) return;
     pulled.dir = -1;
     card.classList.remove("open");
+    const hadFocus = card.contains(document.activeElement);
     setTimeout(() => { card.hidden = true; }, 350);
+    if (hadFocus) {
+      const back = returnFocus && returnFocus.isConnected && returnFocus.getClientRects().length ? returnFocus : pullBtn;
+      if (back && back.getClientRects().length) back.focus({ preventScroll: true }); else cardClose.blur();
+    }
+    returnFocus = null;
   }
   cardClose.addEventListener("click", putBack);
   addEventListener("keydown", (e) => { if (e.key === "Escape") putBack(); });
