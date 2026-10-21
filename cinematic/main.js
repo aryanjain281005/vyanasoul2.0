@@ -706,6 +706,8 @@
   function showDone(result) {
     const v = lastValues;
     doneKind = result.kind;
+    // fx.js stamps a saved request with a seal; anything else shows the plain mark
+    window.dispatchEvent(new CustomEvent(result.kind === "sent" ? "vs:sent" : "vs:unsealed", { detail: { ref: result.ref } }));
     done.classList.toggle("blocked", result.kind === "whatsapp" && !result.opened);
     done.classList.toggle("failed", result.kind === "failed");
     doneRef.hidden = result.kind !== "sent";

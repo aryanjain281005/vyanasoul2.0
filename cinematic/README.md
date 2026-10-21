@@ -15,6 +15,21 @@ A single-page site for Vyana Soul that opens with a journey through the Akashic 
 
 After the journey the page continues with Rekha, sessions, how a session works, courses, reviews, photos, questions and the booking form.
 
+## After the film: candlelight in the library
+
+The page after the journey continues the library instead of leaving it (the reasoning is in `../docs/DESIGN_PASS.md`). All of it lives in `fx.js` and section 11 of `styles.css`:
+
+- **Library doors.** Two arched doors cover the page while the 3D library builds. The lotus draws itself, then the doors part and the headline rises word by word. They show once per visit in full, briefly after that, and never with reduced motion.
+- **Mantra river.** The words of the journey hang from one endless gold headline bar between the film and Rekha. They drift on their own and follow the speed and direction of your scrolling.
+- **Lamp.** On a computer, a warm light follows the pointer through the reading room. It reveals gold writing on the walls: *asato mā sadgamaya, tamaso mā jyotirgamaya…* from the Brihadaranyaka Upanishad, which the footer translates. On touch screens the light stays still and is quieter.
+- **Rekha's arch.** Her portrait sits in a temple arch with a halo that breathes, in for four counts and out for six. "Breathe with Rekha" guides three breaths over the photo, then offers the booking.
+- **Books on a shelf.** Each session is a bound book: indigo, maroon or saffron, titled in Devanagari. A book slides out and tilts toward the pointer. Clicking it does the same as its "Book this session" button.
+- **Thread of light.** A gold thread draws from step to step (१ २ ३) as you scroll through "How a session works".
+- **Candlelit words.** The featured review lights up word by word as you read it.
+- **The seal.** A saved booking is stamped with a gold lotus seal carrying its reference, with a little gold dust.
+
+Every one of these is `aria-hidden` decoration or answers the visitor. With reduced motion they become still versions (no doors or lamp, a static river and halo, the thread fully drawn, every word lit, the seal without the stamp).
+
 ## Design system
 
 After the journey the page is a quiet "reading room". All values are tokens at the top of `styles.css`:
@@ -91,6 +106,7 @@ index.html        page markup and all English copy (the source of both language 
 privacy.html      privacy notice          404.html   page-not-found
 styles.css        design tokens and layout
 main.js           chapter timing, smooth scroll, header menu, questions, booking form, film player
+fx.js             doors, lamp, mantra river, breathing, books, thread, candlelit words, seal
 app3d.js          the 3D library (bundled from src3d/app.js, includes Three.js)
 admin/            the owner's admin page (admin.js is bundled from admin-src/admin.js)
 i18n/hi.json      Hindi translations, keyed by the English text
