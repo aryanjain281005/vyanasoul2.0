@@ -30,8 +30,8 @@
 
   /* ---------- film player ---------- */
   const SETS = {
-    desktop: { n: 240, dir: "frames/desktop", fx: 0.62, fy: 0.5 },
-    mobile: { n: 180, dir: "frames/mobile", fx: 0.5, fy: 0.38 },
+    desktop: { n: 239, dir: "frames/desktop", fx: 0.5, fy: 0.5 },
+    mobile: { n: 239, dir: "frames/mobile", fx: 0.5, fy: 0.5 },
   };
   const INK = "#08060f";
   const canvas = document.getElementById("film");
@@ -158,7 +158,7 @@
   const chapters = [...document.querySelectorAll(".chapter")];
   const railButtons = [...document.querySelectorAll(".rail button")];
   const progressBar = document.querySelector(".progress-line span");
-  const bounds = [0, 0.16, 0.44, 0.70, 0.90, 1.01];
+  const bounds = [0, 0.14, 0.32, 0.54, 0.82, 1.01];
 
   function setActive(p) {
     const k = bounds.findIndex((b, i) => p >= b && p < bounds[i + 1]);
@@ -197,7 +197,8 @@
     if (a > 0) tl.fromTo(ch, { [prop]: 0, y: 34 }, { [prop]: 1, y: 0, duration: FADE }, a);
     if (b < 1) tl.to(ch, { [prop]: 0, y: -34, duration: FADE, ease: "power2.in" }, b - FADE);
     // the Sanskrit word drifts slower than the text: a quiet parallax
-    if (deva && !reduceMotion) tl.fromTo(deva, { y: 0 }, { y: -56, duration: Math.min(b, 1) - a, ease: "none" }, a);
+    const drift = matchMedia("(max-aspect-ratio: 4/5)").matches ? (ch.dataset.m === "top" ? 0 : -24) : -56;
+    if (deva && drift && !reduceMotion) tl.fromTo(deva, { y: 0 }, { y: drift, duration: Math.min(b, 1) - a, ease: "none" }, a);
   });
   tl.set({}, {}, 1); // timeline length = 1, so positions read as scroll progress
 

@@ -1,14 +1,14 @@
 # Vyana Soul — cinematic site
 
-A single-page site for Vyana Soul built around a scroll-driven film. As you scroll, a film made of gold light plays in five chapters:
+A single-page site for Vyana Soul built around a scroll-driven film. As you scroll, the film plays in five chapters:
 
-| Chapter | Sanskrit | What you see | What it says |
+| Chapter | Sanskrit | Scene in the film | What it says |
 |---|---|---|---|
-| 1 | बीज (seed) | A star of light with slow orbits | Every soul keeps a record |
-| 2 | आकाश (Akasha) | A vortex of gold and violet light | What the Akashic Records are |
-| 3 | अभिलेख (record) | An open book written in light; a page turns | What a reading is |
-| 4 | उपचार (healing) | A lotus opening over a flower of life | Lama Fera and Pranic Healing |
-| 5 | स्पष्टता (clarity) | Sunrise over a sea of light | 600+ sessions, book a session |
+| 1 | अभिलेख (record) | A candle-lit library with an open book | Every soul keeps a record |
+| 2 | पठन (reading) | A golden vortex opens in the library | What a reading is |
+| 3 | आकाश (Akasha) | The ceiling opens onto the cosmos | What the Akashic Records are |
+| 4 | उपचार (healing) | Light and stars pour into a floating book | Lama Fera and Pranic Healing |
+| 5 | स्पष्टता (clarity) | The book opens in radiant light | 600+ sessions, book a session |
 
 After the film the page continues with Rekha, sessions, how a session works, courses, reviews, photos, questions and the booking form.
 
@@ -33,33 +33,40 @@ It's plain HTML, CSS and JS with no build step. On Vercel, set the project's roo
 index.html        page markup and all copy
 styles.css        design tokens and layout
 main.js           film player, chapter timing, smooth scroll, booking form
-frames/desktop/   240 frames, 1920×1080 WebP (about 14 MB)
-frames/mobile/    180 frames, 810×1440 WebP, used when the screen is portrait
+frames/desktop/   239 frames, 1920×1080 WebP
+frames/mobile/    239 frames, 810×1440 WebP, used when the screen is portrait
 assets/           Rekha's photos, favicon, social preview image
 fonts/            self-hosted Bodoni Moda, Hanken Grotesk, Tiro Devanagari Sanskrit
 vendor/           GSAP 3.15 + ScrollTrigger, Lenis 1.3 (local copies, no CDN needed)
-film-src/         the Python renderer that made the frames
+film-src/         grade.py (the colour grade) and particles/ (the earlier procedural film)
 ```
 
 ## How the film works
 
-The frames aren't AI video. `film-src/film.py` renders every frame from about 450,000 particles of light: each scene is a shape (star, vortex, book, lotus, sea), particles flow between shapes, and the renderer adds real depth of field, bloom, a lens streak and filmic tone mapping. Because it's procedural, the desktop and mobile versions are composed separately instead of cropped.
+The film is your 10-second video (239 frames at 24 fps) with a cinematic grade applied by `film-src/grade.py`:
 
-To change the film (colours, timing, camera) edit `film.py`, then re-render:
+- deeper, indigo-black shadows and a gentle S-curve for depth
+- the cyan haze and nebula turned toward violet-indigo
+- warm gold highlights with bloom, so candles and stars glow like light
+- light sharpening, a vignette, and blacks matched to the page colour
+
+Desktop frames are 1920×1080; phone frames are a centred 9:16 cut at 810×1440.
+
+To grade a new video:
 
 ```bash
 pip install numpy scipy pillow
-cd film-src
-# desktop: 240 frames; run two copies in parallel with part 0 and part 1 to use two cores
-python3 render_all.py landscape 1920 1080 240 0 1 ../frames/desktop 84 --force
-python3 render_all.py portrait 810 1440 180 0 1 ../frames/mobile 82 --force
+mkdir src && ffmpeg -i your-video.mp4 -vsync 0 src/f%03d.png
+python3 film-src/grade.py src graded 0 1
+# then replace frames/desktop and frames/mobile with graded/desktop and graded/mobile
+# and set n in SETS at the top of main.js to the number of frames
 ```
 
-About 8 seconds per desktop frame on one CPU core.
+`film-src/particles/` holds an earlier, fully procedural version of the film (gold-light particles, no video). It's kept in case you want it back.
 
 ## Editing text and timing
 
-- Chapter text lives in `index.html` inside `#stage`. Each `.chapter` has `data-in` and `data-out`, the scroll progress (0 to 1) where it fades in and out. Keep them inside the matching scene: Akasha 0.23–0.37, book 0.51–0.63, lotus 0.75–0.85, dawn from 0.94.
+- Chapter text lives in `index.html` inside `#stage`. Each `.chapter` has `data-in` and `data-out`, the scroll progress (0 to 1) where it fades in and out. Progress 0.1 is 1 second into the video. Current windows: library 0–0.12, vortex 0.165–0.30, cosmos 0.345–0.515, light into the book 0.57–0.765, radiant book from 0.905.
 - How long the film lasts on screen is the `.prologue` height in `styles.css` (900vh on desktop, 760vh on phones).
 
 ## Booking form

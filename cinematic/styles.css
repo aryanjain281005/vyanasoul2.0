@@ -98,7 +98,14 @@ p { margin: 0 0 1em; }
 .stage { position: fixed; inset: 0; z-index: 2; pointer-events: none; }
 .stage::before {
   content: ""; position: absolute; inset: 0;
-  background: linear-gradient(90deg, rgba(8, 6, 15, 0.62) 0%, rgba(8, 6, 15, 0.25) 38%, rgba(8, 6, 15, 0) 58%);
+  background: linear-gradient(90deg, rgba(8, 6, 15, 0.42) 0%, rgba(8, 6, 15, 0.12) 36%, rgba(8, 6, 15, 0) 52%);
+}
+/* each chapter carries its own soft dark halo, so text stays readable over any scene */
+.chapter { isolation: isolate; }
+.chapter::before {
+  content: ""; position: absolute; z-index: -1; pointer-events: none;
+  inset: -16vh -14vw -12vh -30vw;
+  background: radial-gradient(closest-side, rgba(8, 6, 15, 0.82), rgba(8, 6, 15, 0.5) 55%, rgba(8, 6, 15, 0) 100%);
 }
 .chapter {
   position: absolute; left: var(--pad); bottom: 12vh;
@@ -262,8 +269,11 @@ p { margin: 0 0 1em; }
 /* ---------- portrait / phones ---------- */
 @media (max-aspect-ratio: 4/5) {
   .prologue { height: 760vh; }
-  .stage::before { background: linear-gradient(0deg, rgba(8, 6, 15, 0.85) 0%, rgba(8, 6, 15, 0.45) 34%, rgba(8, 6, 15, 0) 55%); }
+  .stage::before { background: none; }
   .chapter, .chapter-hero { left: var(--pad); right: var(--pad); width: auto; bottom: 7vh; }
+  .chapter[data-m="top"] { bottom: auto; top: calc(92px + 3vh); }
+  .chapter[data-m="top"]::before { background: radial-gradient(closest-side, rgba(8, 6, 15, 0.92), rgba(8, 6, 15, 0.68) 60%, rgba(8, 6, 15, 0) 100%); }
+  .chapter::before { inset: -10vh -12vw -8vh -12vw; background: radial-gradient(closest-side, rgba(8, 6, 15, 0.86), rgba(8, 6, 15, 0.6) 60%, rgba(8, 6, 15, 0) 100%); }
   .chapter h1, .chapter h2 { font-size: clamp(2.1rem, 9.2vw, 3.2rem); }
   .chapter .deva { font-size: clamp(2.6rem, 13vw, 4.2rem); margin-bottom: 0.14em; }
   .chapter .lede { font-size: 1.02rem; margin-top: 1rem; }
