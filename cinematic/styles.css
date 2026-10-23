@@ -1151,6 +1151,37 @@ html.has-thread .steps li { z-index: 1; }
   .seal.stamp { animation: none; }
 }
 
+/* ---- the journey on tall screens: text always on a dark backing, placed where the scene leaves room ---- */
+.explore-hint .link-btn { padding-block: 0; position: relative; }
+.explore-hint .link-btn::after { content: ""; position: absolute; inset: -12px -6px; } /* keeps a 44px tap target without stretching the line */
+@media (max-aspect-ratio: 4/5) {
+  .prologue { height: 600vh; }
+  html[data-mode="3d"] .prologue { height: 660vh; }
+  .chapter h1, .chapter h2 { font-weight: 500; letter-spacing: -0.005em; }
+  .chapter .lede { color: var(--text-1); text-shadow: 0 1px 2px rgba(8, 6, 15, 0.9), 0 0 16px rgba(8, 6, 15, 0.85); }
+  .chapter .deva { color: rgba(226, 180, 103, 0.34); }
+  /* a full-width wash from the screen edge, stronger than the desktop halo */
+  .chapter::before {
+    inset: -18vh calc(-1 * var(--pad)) -8vh;
+    background: linear-gradient(to top, rgba(8, 6, 15, 0.94) 0%, rgba(8, 6, 15, 0.86) 48%, rgba(8, 6, 15, 0.45) 78%, rgba(8, 6, 15, 0) 100%);
+  }
+  .chapter[data-m="top"]::before {
+    inset: calc(-1 * (var(--header-h) + 24px + 2vh)) calc(-1 * var(--pad)) -18vh;
+    background: linear-gradient(to bottom, rgba(8, 6, 15, 0.94) 0%, rgba(8, 6, 15, 0.86) 52%, rgba(8, 6, 15, 0.45) 80%, rgba(8, 6, 15, 0) 100%);
+  }
+  /* the 3D scene composes differently from the film: follow where its book is */
+  html[data-mode="3d"] .chapter[data-m3d="top"] { bottom: auto; top: calc(var(--header-h) + 20px + 2vh); }
+  html[data-mode="3d"] .chapter[data-m3d="top"]::before {
+    inset: calc(-1 * (var(--header-h) + 24px + 2vh)) calc(-1 * var(--pad)) -18vh;
+    background: linear-gradient(to bottom, rgba(8, 6, 15, 0.94) 0%, rgba(8, 6, 15, 0.86) 52%, rgba(8, 6, 15, 0.45) 80%, rgba(8, 6, 15, 0) 100%);
+  }
+  html[data-mode="3d"] .chapter[data-m3d="bottom"] { top: auto; bottom: 7vh; }
+  html[data-mode="3d"] .chapter[data-m3d="bottom"]::before {
+    inset: -18vh calc(-1 * var(--pad)) -8vh;
+    background: linear-gradient(to top, rgba(8, 6, 15, 0.94) 0%, rgba(8, 6, 15, 0.86) 48%, rgba(8, 6, 15, 0.45) 78%, rgba(8, 6, 15, 0) 100%);
+  }
+}
+
 /* ================= 12. In the hand: the phone version =================
    No pointer to hover with, so the library is held instead: the thumb carries the lamp, and
    books, letters and photographs are things you swipe through. fx.js sets --d (signed distance of

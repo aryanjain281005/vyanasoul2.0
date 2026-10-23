@@ -50,7 +50,8 @@ function boot() {
   const DPR = devicePixelRatio || 1;
   // realLights: per-pixel lights for wood and floor; bakeLights: lights baked into the books
   const Q = phone
-    ? { dprMax: Math.min(DPR, 1.5), dpr: Math.min(DPR, 1.25), zMin: -21, levels: 13, dust: 1200, vortex: 14000, stars: 1400, candles: 40, realLights: 2, bakeLights: 5 }
+    // phones: a lighter scene drawn sharper (pixel ratio never below 1.2), rather than a full scene upscaled into blur
+    ? { dprMax: Math.min(DPR, 2), dpr: Math.min(DPR, 1.5), zMin: -21, levels: 12, dust: 1000, vortex: 11000, stars: 1200, candles: 34, realLights: 2, bakeLights: 5 }
     : { dprMax: Math.min(DPR, 1.75), dpr: Math.min(DPR, 1.5), zMin: -27, levels: 17, dust: 3000, vortex: 32000, stars: 3000, candles: 80, realLights: 4, bakeLights: 8 };
 
   const canvas = document.getElementById("scene");
@@ -680,6 +681,10 @@ function boot() {
       lookOut.y += 1.15 * hero; posOut.z += 0.2 * hero;
       const end = sstep(0.78, 1.0, p);
       posOut.z += 0.95 * end; posOut.y += 0.1 * end;
+      // the rising book: step back so it's whole, and frame it in the upper half, clear of the
+      // header above and the chapter text below
+      const heal = sstep(0.5, 0.6, p) * (1 - sstep(0.76, 0.84, p));
+      posOut.z += 0.85 * heal; posOut.y -= 0.25 * heal; lookOut.y -= 1.15 * heal;
     }
   }
 
@@ -955,7 +960,9 @@ function boot() {
      Runs inside GSAP's ticker, right after Lenis moves the page, so the camera and the scroll
      position always update in the same frame. Resolution adapts continuously to hold ~60fps. */
   let scale = 1;                     // fraction of Q.dpr currently in use
-  const SCALE_MIN = phone ? 0.6 : 0.55, SCALE_MAX = Q.dprMax / Q.dpr;
+  const SCALE_MIN = phone ? 0.8 : 0.55, SCALE_MAX = Q.dprMax / Q.dpr;
+  // a phone at a steady ~36fps looks better sharp than at 50fps blurred; desktops aim for ~50
+  const SLOW = phone ? 1 / 36 : 1 / 50, SLOW_SHARE = phone ? 0.4 : 0.25;
   let winT = 0, winN = 0, winSlow = 0, goodWins = 0, lastChange = 0, idle = false, lastP = -1, skipNext = false, earlyT = 0, earlyN = 0;
   document.addEventListener("visibilitychange", () => { if (!document.hidden) { skipNext = true; last = performance.now(); } });
   renderer.info.autoReset = false;
@@ -988,13 +995,13 @@ function boot() {
     const sample = Math.min(rawDt, 1);
     // a device far too slow for 3D (under ~5fps from the start) goes straight to the video
     if (frameN > 8 && frameN < 40) { earlyT += sample; earlyN++; if (earlyN === 12 && earlyT / earlyN > 0.2) { toFilm(); return; } }
-    winT += sample; winN++; if (sample > 1 / 45) winSlow++;
+    winT += sample; winN++; if (sample > (phone ? 1 / 30 : 1 / 45)) winSlow++;
     if (winT < 0.5) return;
     const avg = winT / winN, slowShare = winSlow / winN;
     winT = 0; winN = 0; winSlow = 0;
     if (frameN < 20) return;
     if (fpsEl) fpsEl.textContent = `${Math.round(1 / avg)} fps · ${(Q.dpr * scale).toFixed(2)}x · ${renderer.info.render.calls} draws`;
-    if (avg > 1 / 50 || slowShare > 0.25) {
+    if (avg > SLOW || slowShare > SLOW_SHARE) {
       goodWins = 0;
       if (scale > SCALE_MIN && now - lastChange > 900) { setScale(scale * 0.85); lastChange = now; }
       else if (scale <= SCALE_MIN + 1e-3 && avg > 1 / 18) { verySlow++; if (verySlow >= 6) toFilm(); }
