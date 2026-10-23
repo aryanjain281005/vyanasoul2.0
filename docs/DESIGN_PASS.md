@@ -46,3 +46,20 @@ They are the same colours as the books in the 3D library, so the shelf continues
 - With reduced motion: no doors, no lamp, the river stands still, the halo is static, the thread is fully drawn, every word is lit, and the seal appears without the stamp.
 - Decorative layers are `aria-hidden`. Real headings and text stay real and translatable.
 - Only transforms and opacity are animated. The lamp moves with transforms, so moving the pointer never repaints the page.
+
+## On a phone: the record in your hands
+
+Phones have no pointer to hover with, so the desktop's lamp, book tilt and candlelit photos had nothing to respond to, and the page read as a long stack. On a phone the library is held instead:
+
+| Desktop | Phone |
+|---|---|
+| The lamp follows the pointer | **Your thumb carries the lamp.** Wherever you touch, the light goes, riding just above your thumb, and the writing on the walls appears. Lift your thumb and it settles back. |
+| Books tilt toward the pointer | **A shelf you swipe along.** The front book comes off the shelf toward you, and the others lean in from the edges, turned away (coverflow). Only the front book shows its details. Markers under the shelf jump to a book, and tapping a side book brings it forward. |
+| Reviews in a row | **Letters fanned in the hand.** You swipe through them, and the one in front is upright and lit. |
+| Photos warm up under the pointer | **The photograph in front is lit**; the rest wait in the dark. |
+| Course table | **The index of a book:** course name, dotted leader, fee. Tap a line to open it. |
+| Header button | **A pocket booking bar** at the bottom (Book a session + WhatsApp). It appears in the reading room and steps aside for the form and the footer. |
+
+Phones that support it give a light tap when a book or letter settles, gentle pulses with each breath, and a firmer one when the seal stamps. This only happens after the visitor has touched the page, and never with reduced motion.
+
+With reduced motion switched on, the phone shows the still version of everything: the film plays as stills, there are no doors, no lamp and no haptics, and the river stands still. A visitor who has "Remove animations" or "Reduce motion" on will see a calmer page, by design.

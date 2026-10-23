@@ -1,6 +1,7 @@
 /* Vyana Soul: candlelight in the library (see docs/DESIGN_PASS.md)
    1. library doors and the headline   2. the lamp   3. the mantra river   4. breathe with Rekha
    5. books on the shelf   6. the thread of light   7. words lit by the candle   8. the seal
+   9. in the hand (phones): swiping shelves, the course index and the pocket booking bar
    Runs after main.js. Everything here is decoration or answers the visitor; with reduced motion
    it stands down to still versions. */
 (() => {
@@ -12,6 +13,19 @@
   const $ = (s, r = document) => r.querySelector(s);
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const esc = (s) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  // a small tap of feedback on phones that support it, only once the visitor has touched the page
+  const buzz = (pattern) => {
+    try {
+      if (still || !navigator.vibrate) return;
+      if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;
+      navigator.vibrate(pattern);
+    } catch (e) {}
+  };
+  // "in the room": the film has given way to the sections
+  ScrollTrigger.create({
+    trigger: "#content", start: "top 55%", end: "bottom top",
+    onToggle: (s) => root.classList.toggle("in-room", s.isActive),
+  });
   const T = {
     en: {
       start: "Breathe with Rekha", stop: "Stop", again: "Breathe again",
@@ -95,14 +109,27 @@
     };
     write();
     root.classList.add("lamp-ready");
-    ScrollTrigger.create({
-      trigger: "#content", start: "top 55%", end: "bottom top",
-      onToggle: (s) => root.classList.toggle("in-room", s.isActive),
-    });
     const R = () => win.offsetWidth / 2;
     let r = R();
     let x = innerWidth * 0.5, y = innerHeight * 0.42, tx = x, ty = y, lx = -1, ly = -1;
     if (fine) addEventListener("pointermove", (e) => { tx = e.clientX; ty = e.clientY; }, { passive: true });
+    else {
+      // on a phone the thumb carries the lamp; the flame rides just above it so it isn't hidden
+      let liftT;
+      const touch = (e) => {
+        const t = e.touches && e.touches[0];
+        if (!t) return;
+        tx = t.clientX; ty = Math.max(0, t.clientY - 56);
+        root.classList.add("touching");
+        clearTimeout(liftT);
+      };
+      addEventListener("touchstart", touch, { passive: true });
+      addEventListener("touchmove", touch, { passive: true });
+      addEventListener("touchend", () => {
+        clearTimeout(liftT);
+        liftT = setTimeout(() => { root.classList.remove("touching"); tx = innerWidth * 0.5; ty = innerHeight * 0.38; }, 1600);
+      }, { passive: true });
+    }
     const place = () => {
       win.style.transform = `translate3d(${x}px, ${y}px, 0)`;
       script.style.transform = `translate3d(${r - x}px, ${r - y}px, 0)`;
@@ -112,7 +139,7 @@
     gsap.ticker.add((time, dt) => {
       if (!root.classList.contains("in-room")) return;
       // the flame trails the hand a little, as a held lamp does
-      const k = 1 - Math.pow(0.86, dt / 16.67);
+      const k = 1 - Math.pow(fine ? 0.86 : 0.8, dt / 16.67);
       x += (tx - x) * k; y += (ty - y) * k;
       if (Math.abs(x - lx) < 0.1 && Math.abs(y - ly) < 0.1) return;
       lx = x; ly = y;
@@ -205,6 +232,8 @@
             status.textContent = `${T.count(n + 1)}: ${T[name]}`;
             dots.forEach((d, i) => d.classList.toggle("on", i <= n));
             set(dur, ring, halo);
+            if (name === "in") buzz(24);
+            if (name === "out") buzz([10, 90, 10]);
           }, t));
           t += dur;
         }
@@ -219,8 +248,15 @@
   $$(".sessions .session-card").forEach((card) => {
     const cover = $(".book-cover", card), book = $(".btn", card);
     if (!cover || !book) return;
-    // the cover is a big, friendly target for the same action as the card's button
-    cover.addEventListener("click", () => book.click());
+    // the cover is a big, friendly target for the same action as the card's button;
+    // on a phone, a book at the side of the shelf comes to the front first
+    cover.addEventListener("click", () => {
+      if (parseFloat(card.style.getPropertyValue("--ad") || "0") > 0.3) {
+        card.scrollIntoView({ inline: "center", block: "nearest", behavior: still ? "auto" : "smooth" });
+        return;
+      }
+      book.click();
+    });
     if (!fine || still) return;
     const rx = gsap.quickTo(cover, "--rx", { duration: 0.6, ease: "power3.out" });
     const ry = gsap.quickTo(cover, "--ry", { duration: 0.6, ease: "power3.out" });
@@ -384,7 +420,117 @@
     seal.classList.remove("stamp");
     void seal.offsetWidth; // restart the stamp for a second request
     seal.classList.add("stamp");
-    setTimeout(() => dust(card, seal), 330);
+    setTimeout(() => { dust(card, seal); buzz([16, 60, 30]); }, 330);
   });
   addEventListener("vs:unsealed", () => { const done = $("#book-done"); if (done) done.classList.remove("sealed"); });
+
+  /* ---------- 9. in the hand: phones ---------- */
+  // Each item learns how far it sits from the middle of its scroller (--d, in item widths, and
+  // --ad, its size); the CSS turns that into a book coming off the shelf, a letter fanned in the
+  // hand, a photograph stepping into the light.
+  function coverflow(scroller, items, onChange) {
+    let raf = 0, current = -1;
+    const measure = () => {
+      raf = 0;
+      if (scroller.scrollWidth <= scroller.clientWidth + 2) {
+        items.forEach((it) => { it.style.removeProperty("--d"); it.style.removeProperty("--ad"); });
+        current = -1;
+        return;
+      }
+      const mid = scroller.scrollLeft + scroller.clientWidth / 2;
+      let best = 0, bestD = Infinity;
+      items.forEach((it, i) => {
+        const d = gsap.utils.clamp(-1.6, 1.6, (it.offsetLeft + it.offsetWidth / 2 - mid) / it.offsetWidth);
+        it.style.setProperty("--d", d.toFixed(3));
+        it.style.setProperty("--ad", Math.abs(d).toFixed(3));
+        if (Math.abs(d) < bestD) { bestD = Math.abs(d); best = i; }
+      });
+      if (best !== current) {
+        items.forEach((it, i) => it.classList.toggle("is-front", i === best));
+        if (current !== -1) buzz(6);
+        current = best;
+        if (onChange) onChange(best);
+      }
+    };
+    const queue = () => { if (!raf) raf = requestAnimationFrame(measure); };
+    scroller.addEventListener("scroll", queue, { passive: true });
+    addEventListener("resize", queue);
+    (document.fonts ? document.fonts.ready : Promise.resolve()).then(queue);
+    measure();
+    return {
+      go(i) {
+        const it = items[i];
+        scroller.scrollTo({ left: it.offsetLeft + it.offsetWidth / 2 - scroller.clientWidth / 2, behavior: still ? "auto" : "smooth" });
+      },
+    };
+  }
+
+  // the shelf, with a marker under it for each book
+  const shelf = $(".sessions .session-grid");
+  if (shelf) {
+    const cards = $$(".session-card", shelf);
+    const dots = document.createElement("div");
+    dots.className = "shelf-dots";
+    dots.setAttribute("role", "group");
+    dots.setAttribute("aria-labelledby", "sessions-h");
+    let flow = null;
+    cards.forEach((card, i) => {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.setAttribute("aria-label", $("h3", card).textContent.trim());
+      b.addEventListener("click", () => flow && flow.go(i));
+      dots.appendChild(b);
+    });
+    shelf.after(dots);
+    flow = coverflow(shelf, cards, (i) => [...dots.children].forEach((b, k) => b.setAttribute("aria-current", String(k === i))));
+  }
+  const letters = $(".review-grid");
+  if (letters) coverflow(letters, $$(".review", letters));
+  $$(".moment-strip").forEach((strip) => coverflow(strip, $$("img", strip)));
+
+  // courses as an index: on a phone each line opens to show the details
+  const narrow = matchMedia("(max-width: 639px)");
+  const rows = $$(".course-table tbody tr");
+  const setRow = (tr, open) => {
+    tr.classList.toggle("open", open);
+    const b = $(".c-toggle", tr);
+    if (b) b.setAttribute("aria-expanded", String(open));
+  };
+  const index = () => rows.forEach((tr) => {
+    const th = $("th", tr), name = $(".c-name", th), btn = $(".c-toggle", th);
+    if (narrow.matches && !btn) {
+      const b = document.createElement("button");
+      b.type = "button";
+      b.className = "c-toggle";
+      b.setAttribute("aria-expanded", String(tr.classList.contains("open")));
+      name.replaceWith(b);
+      b.appendChild(name);
+      b.addEventListener("click", (e) => { e.stopPropagation(); setRow(tr, !tr.classList.contains("open")); buzz(5); });
+    } else if (!narrow.matches && btn) {
+      btn.replaceWith(name);
+      tr.classList.remove("open");
+    }
+  });
+  rows.forEach((tr) => tr.addEventListener("click", (e) => {
+    if (!narrow.matches || e.target.closest("a, button")) return;
+    setRow(tr, !tr.classList.contains("open"));
+    buzz(5);
+  }));
+  narrow.addEventListener("change", index);
+  index();
+
+  // the pocket booking bar: shows in the reading room, steps aside for the form and the footer
+  const dock = $("#dock");
+  if (dock) {
+    let nearForm = false, inFooter = false;
+    const sync = () => {
+      const show = root.classList.contains("in-room") && !nearForm && !inFooter;
+      dock.classList.toggle("show", show);
+      dock.inert = !show;
+    };
+    ScrollTrigger.create({ trigger: "#book", start: "top 90%", end: "bottom top", onToggle: (s) => { nearForm = s.isActive; sync(); } });
+    ScrollTrigger.create({ trigger: ".site-footer", start: "top bottom", end: "bottom top", onToggle: (s) => { inFooter = s.isActive; sync(); } });
+    new MutationObserver(sync).observe(root, { attributes: true, attributeFilter: ["class"] });
+    sync();
+  }
 })();

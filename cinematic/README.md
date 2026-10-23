@@ -28,6 +28,8 @@ The page after the journey continues the library instead of leaving it (the reas
 - **Candlelit words.** The featured review lights up word by word as you read it.
 - **The seal.** A saved booking is stamped with a gold lotus seal carrying its reference, with a little gold dust.
 
+**On phones** (the reasoning is in `docs/DESIGN_PASS.md`): the thumb carries the lamp. The sessions become a shelf you swipe along, coverflow-style, with markers under it. Reviews are letters fanned in the hand, and the photo in front is lit. Courses become a book's index that opens line by line. A pocket booking bar sits at the bottom of the screen. Phones that support vibration give small haptic taps.
+
 Every one of these is `aria-hidden` decoration or answers the visitor. With reduced motion they become still versions (no doors or lamp, a static river and halo, the thread fully drawn, every word lit, the seal without the stamp).
 
 ## Design system

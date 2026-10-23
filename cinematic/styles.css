@@ -939,7 +939,11 @@ html.lamp-ready .lamp, html.lamp-ready .lamp-glow { display: block; }
 }
 html.in-room .lamp, html.in-room .lamp-glow { opacity: 1; }
 /* on touch screens the lamp stays put, so its writing is quieter behind whatever you're reading */
-@media (pointer: coarse) { html.in-room .lamp { opacity: 0.55; } }
+@media (pointer: coarse) {
+  html.in-room .lamp { opacity: 0.5; }
+  html.in-room.touching .lamp { opacity: 1; }
+  html.in-room.touching .lamp-glow::before { background: radial-gradient(closest-side, rgba(255, 190, 110, 0.22) 0%, rgba(255, 168, 90, 0.1) 38%, rgba(255, 150, 70, 0.03) 62%, rgba(255, 150, 70, 0) 100%); }
+}
 
 /* ---- the mantra river: words hanging from one endless headline bar (shirorekha) ---- */
 .river { position: relative; overflow: hidden; padding: clamp(3rem, 7vw, 6.5rem) 0 clamp(0.5rem, 2vw, 2rem); pointer-events: none; }
@@ -1032,7 +1036,7 @@ html:lang(hi) .river-run { letter-spacing: 0; }
   border-radius: 3px 9px 9px 3px;
   background: var(--cover); /* browsers without color-mix keep a plain cover */
   background:
-    url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .55 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>"),
+    linear-gradient(100deg, rgba(255, 255, 255, 0) 30%, rgba(255, 240, 210, 0.07) 46%, rgba(255, 255, 255, 0) 60%),
     radial-gradient(130% 90% at 30% 18%, color-mix(in srgb, var(--cover) 82%, #fff 10%) 0%, var(--cover) 48%, color-mix(in srgb, var(--cover) 62%, #000) 100%);
   box-shadow:
     inset 0 0 0 1px rgba(240, 201, 133, 0.45), inset 0 0 0 7px var(--cover), inset 0 0 0 8px rgba(240, 201, 133, 0.5),
@@ -1145,4 +1149,117 @@ html.has-thread .steps li { z-index: 1; }
   .breath-ring, .rekha-photo.breathing .halo i { transition: none; }
   .book-cover { transition: none; }
   .seal.stamp { animation: none; }
+}
+
+/* ================= 12. In the hand: the phone version =================
+   No pointer to hover with, so the library is held instead: the thumb carries the lamp, and
+   books, letters and photographs are things you swipe through. fx.js sets --d (signed distance of
+   each item from the centre, in item widths) and --ad (its absolute value) as they scroll. */
+.shelf-dots, .dock { display: none; }
+@media (max-width: 759px) {
+  /* a shelf you swipe along; the book in front comes off the shelf */
+  .sessions .session-grid {
+    --cover-h: clamp(17rem, 52vw, 21rem);
+    display: flex; gap: 0; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain;
+    scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch;
+    margin-inline: calc(-1 * var(--pad)); padding: var(--s-6) 17vw var(--s-2);
+  }
+  .sessions .session-grid::-webkit-scrollbar { display: none; }
+  .sessions .session-grid, .review-grid, .moment-strip { position: relative; }
+  .sessions .session-card { flex: 0 0 66vw; scroll-snap-align: center; scroll-snap-stop: always; padding-inline: 2vw; }
+  .sessions .session-card .book { perspective: 700px; }
+  .sessions .session-card.is-front { z-index: 2; }
+  .sessions .session-card .book::after { left: -2vw; right: -2vw; }
+  .sessions .session-card .book-cover {
+    /* side books lean in from the edges, turned away, so there's always something to swipe to */
+    transform: translateX(calc(var(--d, 0) * -46%)) translateY(calc((1 - var(--ad, 0)) * -12px)) rotateY(calc(var(--d, 0) * -46deg)) scale(calc(1 - var(--ad, 0) * 0.2));
+    transform-origin: 50% 100%; transition: none;
+  }
+  .sessions .session-card .book-cover::after { opacity: calc(1 - var(--ad, 1) * 1.6); --my: 22%; }
+  /* only the book in front shows its details; the others keep to the shelf */
+  .sessions .sc-main, .sessions .sc-side { opacity: calc(1 - var(--ad, 0) * 1.6); transform: translateY(calc(var(--ad, 0) * 26px)); }
+  .shelf-dots { display: flex; justify-content: center; gap: var(--s-1); margin-top: var(--s-2); }
+  .shelf-dots button {
+    display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 0; background: none; cursor: pointer;
+  }
+  .shelf-dots button::before {
+    content: ""; width: 9px; height: 9px; transform: rotate(45deg); border: 1px solid var(--gold-400);
+    transition: background-color 0.3s, transform 0.3s var(--ease-out);
+  }
+  .shelf-dots button[aria-current="true"]::before { background: var(--gold-300); transform: rotate(45deg) scale(1.3); }
+
+  /* reviews: letters fanned in the hand */
+  .review-grid {
+    display: flex; gap: 0; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scroll-snap-type: x mandatory; scrollbar-width: none;
+    margin-inline: calc(-1 * var(--pad)); padding: var(--s-4) 13vw var(--s-6);
+  }
+  .review-grid::-webkit-scrollbar { display: none; }
+  .review-grid .review {
+    flex: 0 0 72vw; scroll-snap-align: center; margin-inline: 1vw;
+    transform-origin: 50% 120%;
+    transform: rotate(calc(var(--d, 0) * 4deg)) scale(calc(1 - var(--ad, 0) * 0.08));
+    opacity: calc(1 - var(--ad, 0) * 0.45);
+    box-shadow: 0 24px 40px -24px rgba(0, 0, 0, 0.9);
+  }
+
+  /* photographs: the one in front is lit, the rest wait in the dark */
+  .moment-strip img { transform: scale(calc(1 - var(--ad, 0) * 0.1)); opacity: calc(1 - var(--ad, 0) * 0.5); }
+
+  /* a pocket booking bar, out of the way of the film and the form */
+  .dock {
+    display: flex; align-items: center; gap: var(--s-2);
+    position: fixed; z-index: 18; left: 12px; right: 12px; bottom: max(12px, env(safe-area-inset-bottom, 0px));
+    padding: 6px; border-radius: var(--r-pill);
+    background: rgba(15, 11, 26, 0.96); border: 1px solid rgba(226, 180, 103, 0.35);
+    box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.9), 0 0 0 1px rgba(8, 6, 15, 0.6);
+    transform: translateY(calc(100% + 28px)); transition: transform 0.5s var(--ease-out);
+  }
+  .dock.show { transform: none; }
+  html.menu-open .dock { transform: translateY(calc(100% + 28px)); }
+  .dock .btn { flex: 1; }
+  .dock-wa {
+    display: grid; place-items: center; width: 48px; height: 48px; flex: none; border-radius: 50%;
+    border: 1px solid rgba(242, 232, 213, 0.38); color: var(--text-1);
+  }
+  .dock-wa .ic { width: 22px; height: 22px; }
+  .site-footer { padding-bottom: calc(var(--s-6) + 76px); }
+}
+
+/* courses as a book's index: name, a dotted leader, the fee; tap a line to open it */
+@media (max-width: 639px) {
+  .course-table tbody { gap: 0; border-top: 1px solid var(--gold-line); }
+  .course-table tr {
+    grid-template-columns: minmax(0, 1fr) auto; gap: 0 var(--s-3); align-items: center;
+    padding: 0; background: none; border: 0; border-radius: 0; border-bottom: 1px solid var(--gold-line);
+    cursor: pointer; -webkit-tap-highlight-color: transparent;
+  }
+  .course-table tbody th { grid-column: 1; grid-row: 1; }
+  .c-toggle {
+    display: flex; align-items: baseline; gap: var(--s-2); width: 100%; min-height: 64px; padding: var(--s-4) 0;
+    background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer;
+  }
+  .c-toggle .c-name { flex: 0 1 auto; font-size: 1.12rem; }
+  .c-toggle::after { content: ""; flex: 1 1 1.5rem; min-width: 1.5rem; border-bottom: 1px dotted rgba(226, 180, 103, 0.55); transform: translateY(-0.3em); }
+  .course-table tbody tr > td.c-fee { grid-column: 2; grid-row: 1; display: flex; align-items: center; gap: var(--s-3); padding: 0; margin: 0; border: 0; }
+  .course-table td.c-fee::before { display: none; }
+  .course-table td.c-fee::after {
+    content: ""; width: 9px; height: 9px; margin-top: -4px; border-right: 1.5px solid var(--gold-300); border-bottom: 1.5px solid var(--gold-300);
+    transform: rotate(45deg); transition: transform 0.35s var(--ease-out);
+  }
+  .course-table tr.open td.c-fee::after { transform: rotate(225deg); margin-top: 4px; }
+  .course-table .fee-note, .course-table .c-inc, .course-table tbody tr > td.c-len, .course-table tbody tr > td[data-label="Level"], .course-table tbody tr > td.c-act { display: none; }
+  .course-table tr.open .c-inc { display: block; margin: calc(-1 * var(--s-2)) 0 var(--s-3); animation: unfold 0.4s var(--ease-out); }
+  .course-table tbody tr.open > td.c-len, .course-table tbody tr.open > td[data-label="Level"] { display: block; grid-row: 2; animation: unfold 0.4s var(--ease-out); }
+  .course-table tbody tr.open > td.c-len { grid-column: 1; }
+  .course-table tbody tr.open > td[data-label="Level"] { grid-column: 2; text-align: right; }
+  .course-table tbody tr.open > td.c-act { display: flex; grid-column: 1 / -1; grid-row: 3; justify-content: flex-start; padding: var(--s-4) 0 var(--s-5); border: 0; animation: unfold 0.4s var(--ease-out); }
+  .course-table tr.open .fee-note { display: block; }
+}
+@keyframes unfold { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .sessions .session-card .book-cover { transform: translateX(calc(var(--d, 0) * -40%)) scale(calc(1 - var(--ad, 0) * 0.12)); }
+  .review-grid .review { transform: none; }
+  .dock { transition: none; }
+  .course-table tr.open .c-inc, .course-table tr.open td { animation: none !important; }
 }
