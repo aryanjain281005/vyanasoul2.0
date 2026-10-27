@@ -126,6 +126,7 @@ The frontend makes some content choices that the spec flagged as unconfirmed. Th
 | WP5 Admin | Done. `/admin/` covers requests, messages and reviews. Tested against a mocked database; needs a real sign-in once the migration is applied. |
 | WP6 Content | Reviews: 17 from the database plus the 4 hard-coded ones. Gallery: 10 photos moved off i.ibb.co into `assets/gallery/`, 3 shown on the page. Blog: nothing to move. |
 | WP7 Verification | Done. Live end-to-end booking (22 Oct): the request was saved with the correct fields and time zone, and all 3 alerts were logged as skipped (no secrets yet). The test row was deleted. The GitHub Pages preview is published and its form reaches the function in test mode, storing nothing. |
+| WP8 Website text (client request, 27 Oct) | Done. Admin tab "Website text" edits every text on both pages, plus the form and breathing messages, with save, a private preview on the real page, and "Update the website". Migration `20261027000000_site_text.sql` applied (new tables only). Tested against a mocked database and with sample edits through the build; needs a real admin sign-in, and the Vercel deploy hook for "Update the website". |
 
 ## 6. Still to do (needs the owner or developer)
 

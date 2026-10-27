@@ -19,6 +19,8 @@ functions/booking/.env.example                the secrets the function reads
 - The four reviews the old site showed from code are added as featured rows.
 - `is_admin()` gets a fixed `search_path`.
 
+`20261027000000_site_text.sql` (applied 27 October 2026) adds `site_text`, the text edited in the admin's "Website text" tab, and `site_text_history`, every earlier version. Anyone can read the text (it's on the website, and the build reads it with the publishable key); only admins can change it. Nothing the v1 site uses is touched.
+
 ## Deploy
 
 ```bash

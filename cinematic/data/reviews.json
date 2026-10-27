@@ -1,5 +1,5 @@
 {
-  "syncedAt": "2026-10-21T19:59:58.542Z",
+  "syncedAt": "2026-10-27T01:10:24.101Z",
   "reviews": [
     {
       "id": "seed-1",
@@ -54,6 +54,19 @@
       "createdAt": "2026-05-01T00:00:00+00:00"
     },
     {
+      "id": "d5cb2526-9c6c-4db9-a2ca-2c9cad41762d",
+      "name": "Somnath",
+      "location": "Haridwar",
+      "service": "Akashic reading",
+      "rating": 5,
+      "text": "It was an excellent experience for me. I have already recommended my friends and colleagues for the same.",
+      "short": "It was an excellent experience for me. I have already recommended my friends and colleagues for the same.",
+      "language": "en",
+      "featured": false,
+      "sortOrder": 0,
+      "createdAt": "2026-11-20T00:00:00+00:00"
+    },
+    {
       "id": "16bcbfc6-f92a-4724-b845-77c57279f5cf",
       "name": "Geetanjali Rathore",
       "location": "Navi Mumbai",
@@ -93,6 +106,19 @@
       "createdAt": "2026-11-11T00:00:00+00:00"
     },
     {
+      "id": "80c36230-7c95-47d9-9494-be523c060d1f",
+      "name": "Shilpa",
+      "location": "Rishikesh",
+      "service": "Akashic reading",
+      "rating": 5,
+      "text": "Firstly, Rekhaji is a very genuine and trustworthy person. Her reading is authentic and her guidance is insightful. My personal experience was very good and her reading gave me lots of clarity about things in life. Thank you so much. Best wishes & Blessings to you Rekha ji.💜",
+      "short": "Firstly, Rekhaji is a very genuine and trustworthy person. Her reading is authentic and her guidance is insightful. My personal experience was very good and her reading gave me lots of clarity about things in life. Thank you so much. Best wishes & Blessings to you Rekha ji.💜",
+      "language": "en",
+      "featured": false,
+      "sortOrder": 0,
+      "createdAt": "2026-11-11T00:00:00+00:00"
+    },
+    {
       "id": "313de208-f59c-4be1-8917-7effde90aa90",
       "name": "Aishwaraya",
       "location": "Manakpur",
@@ -104,6 +130,32 @@
       "featured": false,
       "sortOrder": 0,
       "createdAt": "2026-11-07T00:00:00+00:00"
+    },
+    {
+      "id": "28d54747-bdf1-41ca-9438-a0061aff774b",
+      "name": "Tarun babar",
+      "location": "Hyderabad",
+      "service": "Akashic reading",
+      "rating": 5,
+      "text": "Rekha Mam is an excellent Akashic reader. Her session cleared my doubts about what I should be doing in my life. She spoke about real moments from my past and decisions I had only thought about, and she gave me thoughtful remedies to move forward toward my dreams. She went beyond the one-hour session, giving me her full time and attention. She even helped connect my late mother with my child, which brought me deep peace. I'm truly grateful for her guidance. I highly recommend her to anyone seeking clarity.",
+      "short": "Rekha Mam is an excellent Akashic reader. Her session cleared my doubts about what I should be doing in my life. She spoke about real moments from my past and decisions I had only thought about, and she gave me thoughtful remedies to move forward toward my dreams. She went beyond the one-hour session, giving me her full time and attention. She even helped connect my late mother with my child, which brought me deep peace. I'm truly grateful for her guidance. I highly recommend her to anyone seeking clarity.",
+      "language": "en",
+      "featured": false,
+      "sortOrder": 0,
+      "createdAt": "2026-10-23T00:00:00+00:00"
+    },
+    {
+      "id": "01d68e6a-2b0e-4678-a85b-6b98643ac9d9",
+      "name": "Dashrath pandit",
+      "location": "Mumbai",
+      "service": "Akashic reading",
+      "rating": 5,
+      "text": "Maam se akashic records khol ke bahut achha laga, mujhe ghar se related jo bbi bataya usse mujhe bahut fayda hua",
+      "short": "Maam se akashic records khol ke bahut achha laga, mujhe ghar se related jo bbi bataya usse mujhe bahut fayda hua",
+      "language": "en",
+      "featured": false,
+      "sortOrder": 0,
+      "createdAt": "2026-10-22T00:00:00+00:00"
     },
     {
       "id": "8a3982de-8871-45fb-bfc8-ac1749f88f2c",
@@ -132,19 +184,6 @@
       "createdAt": "2026-10-14T00:00:00+00:00"
     },
     {
-      "id": "001d52ff-87ee-4a77-a12c-c525aec07377",
-      "name": "Anil kumar",
-      "location": "Navi Mumbai",
-      "service": "Akashic reading",
-      "rating": 5,
-      "text": "मेरे लिए जीवन का एक बढ़िया व अनोखा session था जिसमें स्वतंत्र रूप से  प्रश्न पूछने की आजादी लगी । Mam ने प्रश्नों को ध्यान से सुनकर  प्रत्येक घटनाओं के क्रम को जोड़ कर polite way में आसान तरीके से समझाया फिर चाहे वह संसार से संबंधित हो या आध्यात्म से जुड़ा हो, वर्तमान जीवन से संबंध रखता हो या पूर्वजन्म से । Akashic के masters द्वारा guidance से मैं पूर्ण संतुष्ट हूं । साथ साथ  रेखा जी से स्वयं का अनुभवयुक्त मार्गदर्शन भी मिला । पूरे Session के दौरान मैं पूरी तरह comfortable था कहीं पर भी जल्दपना महसूस नहीं हुआ। इसे मैं एक open  heart to heart conversation कहूंगा। निर्धारित समय पर सफल सेशन कराने के लिए मैं ईश्वर के साथ पूरे vyan टीम को धन्यवाद करता हूं ।",
-      "short": "मेरे लिए जीवन का एक बढ़िया व अनोखा session था जिसमें स्वतंत्र रूप से  प्रश्न पूछने की आजादी लगी । Mam ने प्रश्नों को ध्यान से सुनकर  प्रत्येक घटनाओं के क्रम को जोड़ कर polite way में आसान तरीके से समझाया फिर चाहे वह संसार से संबंधित हो या आध्यात्म से जुड़ा हो, वर्तमान जीवन से संबंध रखता हो या पूर्वजन्म से । Akashic के masters द्वारा guidance से मैं पूर्ण संतुष्ट हूं । साथ साथ  रेखा जी से स्वयं का अनुभवयुक्त मार्गदर्शन भी मिला । पूरे Session के दौरान मैं पूरी तरह comfortable था कहीं पर भी जल्दपना महसूस नहीं हुआ। इसे मैं एक open  heart to heart conversation कहूंगा। निर्धारित समय पर सफल सेशन कराने के लिए मैं ईश्वर के साथ पूरे vyan टीम को धन्यवाद करता हूं ।",
-      "language": "hi",
-      "featured": false,
-      "sortOrder": 0,
-      "createdAt": "2026-10-14T00:00:00+00:00"
-    },
-    {
       "id": "7c3259d5-04ad-4ced-ba33-1c536708c20a",
       "name": "Jitender kumar",
       "location": "Ahmedabad",
@@ -153,6 +192,19 @@
       "text": "I have done Akashic reading session with Rekha Maam for my career , wealth and love relationship. During the season she provided me clear path of my life specifically for spiritual path . During the session Guided with some rituals of regarding my soul purpose ,family life, health , career and wealth related . Thank you ma’am for everything.",
       "short": "I have done Akashic reading session with Rekha Maam for my career , wealth and love relationship. During the season she provided me clear path of my life specifically for spiritual path . During the session Guided with some rituals of regarding my soul purpose ,family life, health , career and wealth related . Thank you ma’am for everything.",
       "language": "en",
+      "featured": false,
+      "sortOrder": 0,
+      "createdAt": "2026-10-14T00:00:00+00:00"
+    },
+    {
+      "id": "001d52ff-87ee-4a77-a12c-c525aec07377",
+      "name": "Anil kumar",
+      "location": "Navi Mumbai",
+      "service": "Akashic reading",
+      "rating": 5,
+      "text": "मेरे लिए जीवन का एक बढ़िया व अनोखा session था जिसमें स्वतंत्र रूप से  प्रश्न पूछने की आजादी लगी । Mam ने प्रश्नों को ध्यान से सुनकर  प्रत्येक घटनाओं के क्रम को जोड़ कर polite way में आसान तरीके से समझाया फिर चाहे वह संसार से संबंधित हो या आध्यात्म से जुड़ा हो, वर्तमान जीवन से संबंध रखता हो या पूर्वजन्म से । Akashic के masters द्वारा guidance से मैं पूर्ण संतुष्ट हूं । साथ साथ  रेखा जी से स्वयं का अनुभवयुक्त मार्गदर्शन भी मिला । पूरे Session के दौरान मैं पूरी तरह comfortable था कहीं पर भी जल्दपना महसूस नहीं हुआ। इसे मैं एक open  heart to heart conversation कहूंगा। निर्धारित समय पर सफल सेशन कराने के लिए मैं ईश्वर के साथ पूरे vyan टीम को धन्यवाद करता हूं ।",
+      "short": "मेरे लिए जीवन का एक बढ़िया व अनोखा session था जिसमें स्वतंत्र रूप से  प्रश्न पूछने की आजादी लगी । Mam ने प्रश्नों को ध्यान से सुनकर  प्रत्येक घटनाओं के क्रम को जोड़ कर polite way में आसान तरीके से समझाया फिर चाहे वह संसार से संबंधित हो या आध्यात्म से जुड़ा हो, वर्तमान जीवन से संबंध रखता हो या पूर्वजन्म से । Akashic के masters द्वारा guidance से मैं पूर्ण संतुष्ट हूं । साथ साथ  रेखा जी से स्वयं का अनुभवयुक्त मार्गदर्शन भी मिला । पूरे Session के दौरान मैं पूरी तरह comfortable था कहीं पर भी जल्दपना महसूस नहीं हुआ। इसे मैं एक open  heart to heart conversation कहूंगा। निर्धारित समय पर सफल सेशन कराने के लिए मैं ईश्वर के साथ पूरे vyan टीम को धन्यवाद करता हूं ।",
+      "language": "hi",
       "featured": false,
       "sortOrder": 0,
       "createdAt": "2026-10-14T00:00:00+00:00"

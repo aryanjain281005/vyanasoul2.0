@@ -88,7 +88,7 @@ Any static server pointed at this folder also works for quick edits to the Engli
 | Command | What it does |
 |---|---|
 | `npm run check` | Every English string has a Hindi translation; in-page links and alt text are in place |
-| `npm run sync` | Pulls published reviews from Supabase into `data/reviews.json` |
+| `npm run sync` | Pulls published reviews and the text edited in the admin from Supabase into `data/reviews.json` and `data/site-text.json` |
 | `npm run build` / `npm run build:prod` | Builds `dist/` for the GitHub Pages preview (noindex) or for www.vyanasoul.com (indexable) |
 | `npm run build:3d` / `npm run build:admin` | Rebundle `app3d.js` from `src3d/`, or `admin/admin.js` from `admin-src/` |
 | `npm run deploy:preview` | Builds the preview and publishes it to the `gh-pages` branch |
@@ -113,6 +113,7 @@ app3d.js          the 3D library (bundled from src3d/app.js, includes Three.js)
 admin/            the owner's admin page (admin.js is bundled from admin-src/admin.js)
 i18n/hi.json      Hindi translations, keyed by the English text
 data/reviews.json published reviews, from `npm run sync`
+data/site-text.json text edited in the admin, from `npm run sync`
 tools/            build, check, sync, local server and preview deploy
 frames/desktop/   239 frames, 1920×1080 WebP
 frames/mobile/    239 frames, 810×1440 WebP, used when the screen is portrait
@@ -181,8 +182,20 @@ Reviews come from the `reviews` table: the first four featured reviews appear on
 - **Requests**: new and in-progress first, search, one tap to WhatsApp/call/email, status and private notes, plus a warning with "Send again" if an alert didn't reach Telegram
 - **Messages**: contact messages
 - **Reviews**: as above
+- **Website text**: every text on the English and Hindi pages, see below
 
 Access is enforced by row-level security (`profiles.role = 'admin'`), not by the page.
+
+## Website text (edited in the admin)
+
+Rekha can change any text on the site without touching code: headings, paragraphs, buttons, fees, questions and answers, form labels, image descriptions, the title and description Google shows, the privacy page, and the messages the booking form and "Breathe with Rekha" write. Each language is edited on its own.
+
+- `index.html`, `privacy.html`, `i18n/hi.json` and the `T` objects in `main.js` and `fx.js` stay the originals. An edit is a row in the `site_text` table, keyed by the original English text (or `js:form.<name>` / `js:breath.<name>` for script messages), with `en` and `hi` columns; null keeps the original.
+- `npm run build` puts the edits in place of the originals (`translate(..., { all: true })` in `tools/lib.mjs`), embeds edited script messages as `<script type="application/json" id="vs-text">`, and writes `dist/admin/texts.json`: every editable text with its section, what it is, the original and what this build shows. Prices and numbers follow the English edit on the Hindi page.
+- Saving in the admin writes `site_text`. **Preview on the page** stores the edits in the browser and opens the site with `?preview-text`, which shows them with a notice; only that browser sees them. **Update the website** calls the booking function's `/rebuild`, which runs the Vercel deploy hook (`npm run sync && npm run build:prod`).
+- Every earlier version is kept in `site_text_history`, so a mistaken edit can be put back from the SQL editor.
+- If the developer changes a text in `index.html`, its old edit no longer matches; the admin lists it under "No longer on the site", and the build says how many there are.
+- Email addresses and phone numbers aren't in the editor: they are also inside links, so they're changed in `tools/config.mjs`, `index.html` and `main.js`. Reviews are edited in the Reviews tab.
 
 ## Search engines
 

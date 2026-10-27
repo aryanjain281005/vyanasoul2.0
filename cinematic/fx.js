@@ -42,6 +42,8 @@
       stopped: "रुक गया। जब चाहें फिर शुरू करें।",
     },
   }[root.lang === "hi" ? "hi" : "en"];
+  Object.assign(T, window.vsPageText?.breath); // edited in the admin (main.js reads them)
+  window.vsPageText?.swap?.(T);
 
   /* ---------- 1. the library doors, then the headline rises ---------- */
   const doors = $("#doors");

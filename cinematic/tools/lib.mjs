@@ -25,25 +25,17 @@ const META_CONTENT = /^(description|og:title|og:description|twitter:title|twitte
 const NEEDS_TRANSLATION = (key) => /[A-Za-z].*[A-Za-z]/.test(key) && !/^[\w.+-]+@[\w.-]+$/.test(key) && !/^\+?[\d\s()-]+$/.test(key);
 
 /**
- * Translate every text node and user-facing attribute under `root` with `dict`
- * (English text -> other language, whitespace-normalised). Elements marked translate="no",
- * or already in another language (lang="sa", lang="hi"...), are left alone.
- * Returns the English strings that had no translation; `used` collects the ones that had one.
+ * Call `visit(raw, where)` for every text node and user-facing attribute under `root`, in
+ * document order; `where` is { el, attr } (attr is null for a text node, el its parent).
+ * A string returned by `visit` replaces the text. Elements marked translate="no", or already
+ * in another language (lang="sa", lang="hi"...), are skipped, and so is everything inside them.
  */
-export function translate(root, dict, used = null) {
-  const missing = new Set();
-  const look = (raw) => {
-    const key = norm(raw);
-    if (!key || !NEEDS_TRANSLATION(key)) return null;
-    if (Object.prototype.hasOwnProperty.call(dict, key)) { used?.add(key); return dict[key]; }
-    missing.add(key);
-    return null;
-  };
-  const walk = (node) => {
+function visitTexts(root, visit) {
+  const walk = (node, parent) => {
     if (node.nodeType === 3) {
       const raw = node.rawText;
-      const t = look(raw);
-      if (t !== null) {
+      const t = visit(raw, { el: parent, attr: null });
+      if (t != null) {
         const lead = raw.match(/^\s*/)[0], trail = raw.match(/\s*$/)[0];
         node.rawText = lead + encodeText(t) + trail;
       }
@@ -58,21 +50,58 @@ export function translate(root, dict, used = null) {
     for (const a of ATTRS) {
       const v = node.getAttribute(a);
       if (v == null) continue;
-      const t = look(v);
-      if (t !== null) node.setAttribute(a, t);
+      const t = visit(v, { el: node, attr: a });
+      if (t != null) node.setAttribute(a, t.replace(/&/g, "&amp;"));
     }
     if (tag === "meta") {
       const name = node.getAttribute("name") || node.getAttribute("property") || "";
       if (META_CONTENT.test(name)) {
-        const t = look(node.getAttribute("content") || "");
-        if (t !== null) node.setAttribute("content", t);
+        const t = visit(node.getAttribute("content") || "", { el: node, attr: "content" });
+        if (t != null) node.setAttribute("content", t.replace(/&/g, "&amp;"));
       }
     }
-    node.childNodes.forEach(walk);
+    node.childNodes.forEach((c) => walk(c, node));
   };
-  walk(root);
+  walk(root, null);
+}
+
+/**
+ * Translate every text node and user-facing attribute under `root` with `dict`
+ * (English text -> other language, whitespace-normalised).
+ * Returns the English strings that had no translation; `used` collects the ones that had one.
+ * With `all`, strings that need no translation (prices, numbers) are looked up too: that is
+ * how text edited in the admin replaces them.
+ */
+export function translate(root, dict, used = null, { all = false } = {}) {
+  const missing = new Set();
+  visitTexts(root, (raw) => {
+    const key = norm(raw);
+    if (!key) return null;
+    const needed = NEEDS_TRANSLATION(key);
+    if (!needed && !all) return null;
+    if (Object.prototype.hasOwnProperty.call(dict, key)) { used?.add(key); return dict[key]; }
+    if (needed) missing.add(key);
+    return null;
+  });
   return [...missing];
 }
+
+// Text the admin can edit: anything with a letter or a digit, except email addresses and phone
+// numbers, which are also inside links (wa.me, tel:, mailto:) and are changed in tools/config.mjs
+const EDITABLE = (key) => /[\p{L}\p{N}]/u.test(key) && !/^[\d\s.,%]+$/.test(key) && !/^[\w.+-]+@[\w.-]+$/.test(key) && !/^\+?[\d\s()-]{6,}$/.test(key);
+
+/** Every editable text under `root`, in document order: [{ key, el, attr }], keys normalised. */
+export function collectTexts(root) {
+  const out = [];
+  visitTexts(root, (raw, where) => {
+    const key = norm(raw);
+    if (key && EDITABLE(key)) out.push({ key, ...where });
+    return null;
+  });
+  return out;
+}
+export const needsTranslation = NEEDS_TRANSLATION;
+export const normText = norm;
 
 /** Prefix relative URLs (assets, scripts, other pages) for a page one folder down. */
 export function rebaseUrls(root, prefix, keep = []) {

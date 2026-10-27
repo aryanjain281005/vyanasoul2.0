@@ -1,4 +1,4 @@
-/* Vyana Soul admin: booking requests, contact messages and reviews.
+/* Vyana Soul admin: booking requests, contact messages, reviews and the website's text.
    Access is enforced by the database (row-level security, is_admin()), not by this page:
    a non-admin who signs in simply gets no rows. Bundled to admin/admin.js with `npm run build:admin`. */
 import { createClient } from "@supabase/supabase-js";
@@ -70,6 +70,7 @@ async function route() {
   loadRequests();
   loadMessages();
   loadReviews();
+  loadTexts();
 }
 
 $("#signin-form").addEventListener("submit", async (e) => {
@@ -102,7 +103,7 @@ $("#sign-out").addEventListener("click", async () => { await sb.auth.signOut(); 
 sb.auth.onAuthStateChange((event) => { if (event === "SIGNED_IN" || event === "SIGNED_OUT") route(); });
 
 /* ---------------- tabs ---------------- */
-const tabs = ["requests", "messages", "reviews"];
+const tabs = ["requests", "messages", "reviews", "text"];
 function selectTab(name, focus = false) {
   tabs.forEach((t) => {
     const on = t === name;
@@ -120,7 +121,7 @@ tabs.forEach((t, i) => {
     if (e.key === "ArrowLeft") selectTab(tabs[(i + tabs.length - 1) % tabs.length], true);
   });
 });
-selectTab("requests");
+selectTab(location.hash === "#text" ? "text" : "requests");
 
 async function callFunction(path, body) {
   const { data } = await sb.auth.getSession();
@@ -331,13 +332,210 @@ $("#rv-delete").addEventListener("click", async () => {
   dlg.close();
   loadReviews();
 });
-$("#rv-publish").addEventListener("click", async (e) => {
-  const b = e.currentTarget; b.classList.add("is-loading");
+async function updateWebsite(button, statusEl) {
+  button.classList.add("is-loading");
   const { status } = await callFunction("rebuild");
-  b.classList.remove("is-loading");
-  $("#rv-status").textContent = status === 202 ? "The website is updating. Changes appear in about a minute."
+  button.classList.remove("is-loading");
+  statusEl.textContent = status === 202 ? "The website is updating. Changes appear in about a minute."
     : status === 501 ? "Automatic updates aren't switched on yet. Ask the developer to publish the site."
     : "The update didn't start. Try again in a minute.";
+}
+$("#rv-publish").addEventListener("click", (e) => updateWebsite(e.currentTarget, $("#rv-status")));
+
+/* ---------------- website text ----------------
+   texts.json (written by the build) lists every text on the site: the original, what the
+   published site shows, where it is and what it is. site_text holds the edits; the build
+   puts them in place of the originals. A null in a language keeps that language's original. */
+let texts = [], saved = new Map(), draft = new Map();
+let txLang = "en", txQuery = "", txOnlyChanged = false;
+const opened = new Set();
+
+const original = (t, lang) => (lang === "en" || !t.x ? t.en : t.hi ?? t.en);
+const savedValue = (t, lang) => saved.get(t.k)?.[lang] ?? null;
+function current(t, lang) {
+  if (lang === "hi" && !t.x) return current(t, "en"); // prices and numbers follow the English page
+  const d = draft.get(t.k);
+  if (d && lang in d) return d[lang] ?? original(t, lang);
+  return savedValue(t, lang) ?? original(t, lang);
+}
+const published = (t, lang) => (lang === "en" ? t.be : t.bh ?? t.be);
+const tidy = (v) => v.replace(/\s+/g, " ").trim();
+const unpublished = () => texts.filter((t) => ["en", "hi"].some((l) => current(t, l) !== published(t, l))).length;
+
+async function loadTexts() {
+  $("#tx-status").textContent = "Loading the website's text…";
+  const [list, db] = await Promise.all([
+    fetch("texts.json", { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null),
+    sb.from("site_text").select("*"),
+  ]);
+  if (!list) { $("#tx-status").textContent = "The list of the website's text is missing. Ask the developer to rebuild the site."; return; }
+  if (db.error) { $("#tx-status").textContent = `Couldn't load the saved text: ${db.error.message}`; return; }
+  texts = list.texts;
+  saved = new Map(db.data.map((r) => [r.key, r]));
+  renderTexts();
+}
+
+function textItem(t) {
+  const lang = txLang;
+  const orig = original(t, lang);
+  const area = h("textarea", { id: `tx-${texts.indexOf(t)}`, rows: Math.min(6, Math.ceil(orig.length / 70)), lang: lang === "hi" ? "hi" : null, maxlength: 4000 });
+  area.value = current(t, lang);
+  const warn = h("p", { class: "tx-warn", role: "alert", hidden: true });
+  const origLine = h("p", { class: "tx-orig" }, "Original: ", h("span", { lang: lang === "hi" ? "hi" : null }, `“${orig}”`));
+  const undo = h("button", { type: "button", class: "btn-text" }, "Undo change");
+  const foot = h("div", { class: "tx-foot" }, origLine, undo);
+  const badge = h("span", { class: "a-badge on" }, "Changed");
+  const row = saved.get(t.k);
+  const item = h("li", { class: "tx-item" },
+    h("div", { class: "tx-meta" },
+      h("label", { class: "tx-kind", for: area.id }, t.t),
+      t.n ? h("span", {}, `appears ${t.n} times; changing it changes all of them`) : null,
+      t.p === "privacy.html" ? h("span", {}, "privacy page") : null,
+      badge,
+      row?.updated_at ? h("span", {}, `saved ${ago(row.updated_at)}`) : null),
+    t.c ? h("p", { class: "tx-context" }, `Part of: “${t.c}”`) : null,
+    lang === "hi" ? h("p", { class: "tx-ref", lang: "en" }, `English: “${current(t, "en")}”`) : null,
+    area, warn, foot);
+  // the English was edited after the Hindi: the translation may no longer match
+  if (lang === "hi" && row?.en_updated_at && (!row.hi_updated_at || row.en_updated_at > row.hi_updated_at)) {
+    item.insertBefore(h("p", { class: "tx-warn soft" }, `The English was changed ${ago(row.en_updated_at)}. Check this Hindi still says the same.`), area);
+  }
+  const sync = () => {
+    const v = tidy(area.value);
+    const changed = v !== orig;
+    show(foot, changed); show(badge, changed);
+    item.classList.toggle("is-changed", changed);
+    item.classList.toggle("is-dirty", (draft.get(t.k) || {})[lang] !== undefined);
+    if (!v) { warn.textContent = "Write something here, or press Undo change to go back to the original."; warn.className = "tx-warn"; show(warn, true); }
+    else if (v.length > orig.length * 1.6 + 25) { warn.textContent = "Much longer than before. Check how it looks on a phone with Preview on the page."; warn.className = "tx-warn soft"; show(warn, true); }
+    else show(warn, false);
+  };
+  area.addEventListener("input", () => {
+    const v = tidy(area.value);
+    const d = { ...(draft.get(t.k) || {}) };
+    const before = savedValue(t, lang) ?? orig;
+    if (v === before) delete d[lang]; else d[lang] = v === orig ? null : v;
+    if (Object.keys(d).length) draft.set(t.k, d); else draft.delete(t.k);
+    sync(); updateSaveBar();
+  });
+  undo.addEventListener("click", () => { area.value = orig; area.dispatchEvent(new Event("input")); area.focus(); });
+  sync();
+  return item;
+}
+
+function renderTexts() {
+  const q = txQuery.toLowerCase();
+  const list = texts.filter((t) => {
+    if (txLang === "hi" && !t.x) return false;
+    if (txOnlyChanged && current(t, txLang) === original(t, txLang)) return false;
+    if (!q) return true;
+    return [t.k, t.s, t.t, t.c, current(t, txLang), txLang === "hi" ? current(t, "en") : ""].some((v) => (v || "").toLowerCase().includes(q));
+  });
+  const groups = new Map();
+  for (const t of list) groups.set(t.s, [...(groups.get(t.s) || []), t]);
+  const parts = [...groups].map(([name, items]) => {
+    const changed = items.filter((t) => current(t, txLang) !== original(t, txLang)).length;
+    const d = h("details", { class: "tx-group", open: !!q || txOnlyChanged || opened.has(name) },
+      h("summary", {}, h("span", {}, name), h("span", { class: "a-hint" }, `${items.length} ${items.length === 1 ? "text" : "texts"}`),
+        changed ? h("span", { class: "a-badge on" }, `${changed} changed`) : null));
+    let filled = false;
+    const fill = () => { if (filled) return; filled = true; d.append(h("ol", { class: "tx-items" }, items.map(textItem))); };
+    if (d.open) fill();
+    d.addEventListener("toggle", () => { if (d.open) { fill(); opened.add(name); } else opened.delete(name); });
+    return d;
+  });
+  // edits whose text is no longer on the site (the page was changed since)
+  const known = new Set(texts.map((t) => t.k));
+  const orphans = [...saved.values()].filter((r) => !known.has(r.key));
+  if (orphans.length && !q) {
+    parts.push(h("details", { class: "tx-group" },
+      h("summary", {}, h("span", {}, "No longer on the site"), h("span", { class: "a-hint" }, `${orphans.length} old ${orphans.length === 1 ? "edit" : "edits"}`)),
+      h("ol", { class: "tx-items" }, orphans.map((r) => h("li", { class: "tx-item" },
+        h("p", { class: "tx-orig" }, `Was: “${r.key}”`),
+        h("p", { class: "tx-ref" }, `Changed to: “${r.en || r.hi}”`),
+        h("div", { class: "tx-foot" }, h("button", { type: "button", class: "btn btn-secondary btn-sm", onclick: async () => {
+          const { error } = await sb.from("site_text").delete().eq("key", r.key);
+          if (!error) { saved.delete(r.key); renderTexts(); }
+        } }, "Remove this old edit")))))));
+  }
+  const pending = unpublished();
+  $("#count-text").textContent = pending ? String(pending) : "";
+  $("#tx-status").textContent = (q ? `${list.length} ${list.length === 1 ? "text matches" : "texts match"} “${txQuery}”` : `${list.length} texts in ${groups.size} parts of the ${txLang === "hi" ? "Hindi" : "English"} page`)
+    + (pending ? `. ${pending} saved ${pending === 1 ? "change isn't" : "changes aren't"} on the website yet: press Update the website.` : ".");
+  $("#tx-list").replaceChildren(...(parts.length ? parts : [h("p", { class: "a-empty" }, txOnlyChanged ? "You haven't changed any text yet." : "No text matches. Try a shorter word.")]));
+}
+
+function updateSaveBar() {
+  const n = [...draft.values()].reduce((sum, d) => sum + Object.keys(d).length, 0);
+  show($("#tx-savebar"), n > 0);
+  $("#app").classList.toggle("has-savebar", n > 0);
+  $("#tx-dirty").textContent = `${n} unsaved ${n === 1 ? "change" : "changes"}`;
+}
+
+async function saveTexts() {
+  const btn = $("#tx-save");
+  const byKey = new Map(texts.map((t) => [t.k, t]));
+  const upserts = [], removals = [];
+  for (const [key, d] of draft) {
+    const t = byKey.get(key);
+    const next = { key, en: "en" in d ? d.en : savedValue(t, "en"), hi: "hi" in d ? d.hi : savedValue(t, "hi") };
+    if (next.en === "" || next.hi === "") { $("#tx-dirty").textContent = "Some text is empty. Write something, or press Undo change."; return; }
+    if (next.en == null && next.hi == null) { if (saved.has(key)) removals.push(key); } else upserts.push(next);
+  }
+  btn.classList.add("is-loading");
+  const results = await Promise.all([
+    upserts.length ? sb.from("site_text").upsert(upserts, { onConflict: "key" }) : { error: null },
+    removals.length ? sb.from("site_text").delete().in("key", removals) : { error: null },
+  ]);
+  btn.classList.remove("is-loading");
+  const error = results.find((r) => r.error)?.error;
+  if (error) { $("#tx-dirty").textContent = `Not saved: ${error.message}`; return; }
+  draft.clear();
+  updateSaveBar();
+  await loadTexts();
+  $("#tx-status").textContent = "Saved. Press Preview on the page to see it, then Update the website to show it to everyone.";
+}
+
+function previewTexts() {
+  // what changes against the published site, saved or not, for each page language
+  const pages = {};
+  for (const lang of ["en", "hi"]) {
+    const page = { text: [], js: {} };
+    for (const t of texts) {
+      const from = published(t, lang), to = current(t, lang);
+      if (to === from || from == null) continue;
+      const m = t.k.match(/^js:(\w+)\.(\w+)$/);
+      if (m) (page.js[m[1]] ||= {})[m[2]] = to;
+      else page.text.push([from, to]);
+    }
+    pages[lang] = page;
+  }
+  try { localStorage.setItem("vs-text-preview", JSON.stringify({ at: Date.now(), pages })); }
+  catch (e) { $("#tx-status").textContent = "This browser won't keep the preview. Try another browser, or save and update the website."; return; }
+  window.open(`../${txLang === "hi" ? "hi/" : ""}?preview-text`, "vs-preview");
+}
+
+function setTextLang(lang) {
+  txLang = lang;
+  $("#tx-en").setAttribute("aria-pressed", String(lang === "en"));
+  $("#tx-hi").setAttribute("aria-pressed", String(lang === "hi"));
+  renderTexts();
+}
+$("#tx-en").addEventListener("click", () => setTextLang("en"));
+$("#tx-hi").addEventListener("click", () => setTextLang("hi"));
+let txT;
+$("#tx-search").addEventListener("input", (e) => { clearTimeout(txT); txT = setTimeout(() => { txQuery = e.target.value.trim(); renderTexts(); }, 200); });
+$("#tx-changed").addEventListener("change", (e) => { txOnlyChanged = e.target.checked; renderTexts(); });
+$("#tx-save").addEventListener("click", saveTexts);
+$("#tx-discard").addEventListener("click", () => {
+  if (!confirm("Throw away the changes you haven't saved?")) return;
+  draft.clear(); updateSaveBar(); renderTexts();
 });
+$("#tx-preview").addEventListener("click", previewTexts);
+$("#tx-publish").addEventListener("click", (e) => {
+  if (draft.size && !confirm("Some changes aren't saved yet, so they won't be on the website. Update the website anyway?")) return;
+  updateWebsite(e.currentTarget, $("#tx-status"));
+});
+addEventListener("beforeunload", (e) => { if (draft.size) { e.preventDefault(); e.returnValue = ""; } });
 
 route();

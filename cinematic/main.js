@@ -10,6 +10,66 @@
   const $$ = (s, root = document) => [...root.querySelectorAll(s)];
   gsap.registerPlugin(ScrollTrigger);
 
+  /* ---------- 0. text edited in the admin ----------
+     The build writes edited page text into the HTML, and edited script messages into #vs-text
+     (read below and by fx.js). With ?preview-text, the edits the admin keeps on this device are
+     shown too, before they are published; only that person sees them. */
+  const pageText = (() => {
+    let js = {};
+    try { js = JSON.parse(document.getElementById("vs-text")?.textContent || "{}"); } catch (e) {}
+    if (!/[?&]preview-text\b/.test(location.search)) return js;
+    let preview = null;
+    try { preview = JSON.parse(localStorage.getItem("vs-text-preview") || "null"); } catch (e) {}
+    const mine = preview?.pages?.[document.documentElement.lang === "hi" ? "hi" : "en"];
+    const pairs = new Map(mine?.text || []);
+    const norm = (v) => v.replace(/\s+/g, " ").trim();
+    let shown = 0;
+    if (pairs.size) {
+      const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
+      for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+        const to = pairs.get(norm(n.nodeValue));
+        if (to == null || n.parentElement.closest("script, style, [translate=no]")) continue;
+        const [, lead, , trail] = n.nodeValue.match(/^(\s*)([\s\S]*?)(\s*)$/);
+        n.nodeValue = lead + to + trail;
+        shown++;
+      }
+      for (const a of ["alt", "aria-label", "placeholder", "title", "data-building", "data-ready"]) {
+        for (const el of document.querySelectorAll(`[${a}]`)) {
+          const to = pairs.get(norm(el.getAttribute(a)));
+          if (to != null) { el.setAttribute(a, to); shown++; }
+        }
+      }
+      const title = pairs.get(norm(document.title));
+      if (title != null) document.title = title;
+    }
+    for (const [group, msgs] of Object.entries(mine?.js || {})) js[group] = { ...js[group], ...msgs };
+    // messages with the same words as edited page text (the send button's label) follow it
+    js.swap = (dict) => { for (const [k, v] of Object.entries(dict)) if (typeof v === "string" && pairs.has(v)) dict[k] = pairs.get(v); };
+    // say so on the page, so a preview is never mistaken for the live site
+    const bar = document.createElement("div");
+    bar.className = "text-preview-bar";
+    bar.setAttribute("role", "status");
+    const say = document.createElement("p");
+    const changes = pairs.size + Object.values(mine?.js || {}).reduce((n, g) => n + Object.keys(g).length, 0);
+    say.textContent = changes
+      ? `Preview of ${changes} text ${changes === 1 ? "change" : "changes"}. Only you can see this. Visitors see the website without them until you press “Update the website” in the admin.`
+      : "Preview: there are no text changes to show. Make them in the admin under Website text.";
+    const back = document.createElement("a");
+    back.className = "btn btn-primary btn-sm";
+    back.href = (document.querySelector('meta[name="vs-root"]')?.content || "") + "admin/#text";
+    back.textContent = "Back to the admin";
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "btn btn-secondary btn-sm";
+    close.textContent = "Close";
+    close.addEventListener("click", () => bar.remove());
+    bar.append(say, back, close);
+    document.body.append(bar);
+    if (changes && !shown && pairs.size) say.textContent += " Some changes can only be seen after scrolling to them, or in messages such as the booking form's.";
+    return js;
+  })();
+  window.vsPageText = pageText;
+
   /* ---------- 1. smooth scroll (skipped for reduced motion) ---------- */
   let lenis = null;
   if (!reduceMotion && !recording && window.Lenis) {
@@ -413,6 +473,8 @@
       dateLocale: "hi-IN",
     },
   }[PAGE_LANG];
+  Object.assign(T, pageText.form);
+  pageText.swap?.(T);
 
   const WA_NUMBER = "919987487242";
   const WA = `https://wa.me/${WA_NUMBER}?text=`;

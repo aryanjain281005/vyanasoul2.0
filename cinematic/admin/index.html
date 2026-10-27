@@ -66,6 +66,7 @@
         <button type="button" class="a-tab" id="tab-requests" aria-controls="panel-requests" aria-selected="true" role="tab">Requests <span class="a-count" id="count-new"></span></button>
         <button type="button" class="a-tab" id="tab-messages" aria-controls="panel-messages" aria-selected="false" role="tab">Messages <span class="a-count" id="count-msg"></span></button>
         <button type="button" class="a-tab" id="tab-reviews" aria-controls="panel-reviews" aria-selected="false" role="tab">Reviews</button>
+        <button type="button" class="a-tab" id="tab-text" aria-controls="panel-text" aria-selected="false" role="tab">Website text <span class="a-count" id="count-text"></span></button>
       </div>
 
       <section class="a-panel" id="panel-requests" role="tabpanel" aria-labelledby="tab-requests">
@@ -99,8 +100,36 @@
         <p class="a-status" id="rv-status" role="status"></p>
         <ol class="a-list" id="rv-list"></ol>
       </section>
+
+      <section class="a-panel" id="panel-text" role="tabpanel" aria-labelledby="tab-text" hidden>
+        <div class="a-toolbar">
+          <div class="a-filters" role="group" aria-label="Language of the page">
+            <button type="button" class="a-chip" id="tx-en" aria-pressed="true">English page</button>
+            <button type="button" class="a-chip" id="tx-hi" aria-pressed="false">Hindi page <span lang="hi">(हिन्दी)</span></button>
+          </div>
+          <label class="a-search"><span class="sr-only">Find text</span><input type="search" id="tx-search" placeholder="Find any text, for example a fee or a heading"></label>
+        </div>
+        <div class="a-toolbar">
+          <label class="tx-only"><input type="checkbox" id="tx-changed"> Only show text I've changed</label>
+          <button type="button" class="btn btn-secondary btn-sm" id="tx-preview">Preview on the page</button>
+          <button type="button" class="btn btn-primary btn-sm" id="tx-publish">Update the website</button>
+        </div>
+        <ol class="tx-steps a-hint-wide">
+          <li>Change any text below and press <strong>Save changes</strong>.</li>
+          <li>Press <strong>Preview on the page</strong> to see it on the real website. Only you see the preview.</li>
+          <li>Press <strong>Update the website</strong> to show it to everyone. It takes about a minute.</li>
+        </ol>
+        <p class="a-status" id="tx-status" role="status"></p>
+        <div id="tx-list"></div>
+      </section>
     </div>
   </main>
+
+  <div class="tx-savebar" id="tx-savebar" hidden>
+    <p id="tx-dirty" role="status"></p>
+    <button type="button" class="btn btn-secondary btn-sm" id="tx-discard">Discard</button>
+    <button type="button" class="btn btn-primary btn-sm" id="tx-save">Save changes</button>
+  </div>
 
   <dialog class="a-dialog" id="rv-dialog" aria-labelledby="rv-dialog-h">
     <form class="admin-form" id="rv-form" method="dialog" novalidate>

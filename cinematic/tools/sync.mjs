@@ -61,3 +61,25 @@ if (missingSeed.length) {
 
 fs.writeFileSync(out, JSON.stringify({ syncedAt: new Date().toISOString(), reviews }, null, 2) + "\n");
 console.log(`Saved ${reviews.length} published reviews (${reviews.filter((r) => r.featured).length} featured) to data/reviews.json`);
+
+// Text edited in the admin ("Website text"): the build puts it in place of the original
+{
+  const textOut = new URL("../data/site-text.json", import.meta.url);
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/site_text?select=key,en,hi&order=key`, {
+    headers: { apikey: SUPABASE_PUBLISHABLE_KEY, Accept: "application/json" },
+  });
+  if (!r.ok) {
+    console.error(`Could not read the edited website text (${r.status}): ${await r.text()}`);
+    console.error("data/site-text.json was left as it was.");
+    process.exit(1);
+  }
+  const text = { en: {}, hi: {} };
+  for (const row of await r.json()) {
+    for (const lang of ["en", "hi"]) {
+      const v = (row[lang] || "").trim();
+      if (v) text[lang][row.key] = v;
+    }
+  }
+  fs.writeFileSync(textOut, JSON.stringify({ syncedAt: new Date().toISOString(), ...text }, null, 2) + "\n");
+  console.log(`Saved ${Object.keys(text.en).length} English and ${Object.keys(text.hi).length} Hindi text edits to data/site-text.json`);
+}
