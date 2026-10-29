@@ -26,7 +26,7 @@ export const BUSINESS = {
 
 // Files and folders copied to dist/ as they are
 export const STATIC = [
-  "styles.css", "main.js", "fx.js", "app3d.js", ".nojekyll",
+  "styles.css", "main.js", "fx.js", "app3d.js", "edit.js", "edit.css", ".nojekyll",
   "assets", "fonts", "frames", "vendor", "admin",
 ];
 

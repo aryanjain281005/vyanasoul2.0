@@ -24,8 +24,8 @@
         try { forced = forced || sessionStorage.getItem("vs-film") === "1"; } catch (e) {}
         var calm = matchMedia("(prefers-reduced-motion: reduce)").matches;
         if (!forced && !calm && document.createElement("canvas").getContext("webgl2")) mode = "3d";
-        /* the library doors open the page, unless motion is reduced or this is a recording */
-        if (!calm && !/[?&]record\b/.test(location.search)) d.classList.add("doors-on");
+        /* the library doors open the page, unless motion is reduced, this is a recording, or edit mode */
+        if (!calm && !/[?&](record|edit)\b/.test(location.search)) d.classList.add("doors-on");
       } catch (e) {}
       d.dataset.mode = mode;
     })();

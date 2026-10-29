@@ -70,6 +70,24 @@
   })();
   window.vsPageText = pageText;
 
+  // edit mode (?edit) for the site's admins: edit.js does the work, and visitors never load it.
+  // An admin who has signed in on this device gets a way in from the page itself.
+  if (/[?&]edit\b/.test(location.search)) {
+    document.documentElement.classList.add("vs-edit");
+    const src = new URL((document.querySelector('meta[name="vs-root"]')?.content || "") + "edit.js", document.baseURI).href;
+    document.addEventListener("DOMContentLoaded", () => import(src));
+  } else {
+    let admin = false;
+    try { admin = localStorage.getItem("vs-admin") === "1"; } catch (e) {}
+    if (admin) {
+      const pill = document.createElement("a");
+      pill.className = "edit-pill";
+      pill.href = "?edit";
+      pill.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16v4Z"/><path d="m13.5 6.5 4 4"/></svg>Edit this page';
+      document.body.append(pill);
+    }
+  }
+
   /* ---------- 1. smooth scroll (skipped for reduced motion) ---------- */
   let lenis = null;
   if (!reduceMotion && !recording && window.Lenis) {

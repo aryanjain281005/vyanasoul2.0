@@ -51,6 +51,8 @@ const firstName = (n) => (n || "").trim().split(/\s+/)[0] || "";
 
 /* ---------------- auth ---------------- */
 let session = null;
+// ?next=: the page to return to after signing in (edit mode). Kept for the trip through Google or an email link.
+try { const n = new URLSearchParams(location.search).get("next"); if (n) sessionStorage.setItem("vs-next", n); } catch (e) {}
 
 async function route() {
   const { data } = await sb.auth.getSession();
@@ -62,11 +64,18 @@ async function route() {
   $("#who").textContent = session.user.email;
   const { data: profile } = await sb.from("profiles").select("role").eq("id", session.user.id).maybeSingle();
   if (profile?.role !== "admin") {
+    try { localStorage.removeItem("vs-admin"); } catch (e) {}
     $("#denied-email").textContent = session.user.email;
     show($("#denied"), true); show($("#signin"), false); show($("#app"), false);
     return;
   }
   show($("#signin"), false); show($("#denied"), false); show($("#app"), true);
+  // the website shows "Edit this page" to admins signed in on this device
+  try { localStorage.setItem("vs-admin", "1"); } catch (e) {}
+  // back to the page that sent them here to sign in (edit mode)
+  let next = null;
+  try { next = sessionStorage.getItem("vs-next"); sessionStorage.removeItem("vs-next"); } catch (e) {}
+  if (next && /^\/(?!\/)[^\s]*\?edit$/.test(next)) { location.replace(next); return; }
   loadRequests();
   loadMessages();
   loadReviews();
@@ -99,7 +108,11 @@ $("#signin-form").addEventListener("submit", async (e) => {
   }
 });
 $("#si-google").addEventListener("click", () => sb.auth.signInWithOAuth({ provider: "google", options: { redirectTo: location.href.split("#")[0].split("?")[0] } }));
-$("#sign-out").addEventListener("click", async () => { await sb.auth.signOut(); location.reload(); });
+$("#sign-out").addEventListener("click", async () => {
+  try { localStorage.removeItem("vs-admin"); } catch (e) {}
+  await sb.auth.signOut();
+  location.reload();
+});
 sb.auth.onAuthStateChange((event) => { if (event === "SIGNED_IN" || event === "SIGNED_OUT") route(); });
 
 /* ---------------- tabs ---------------- */
@@ -446,7 +459,7 @@ function renderTexts() {
   });
   // edits whose text is no longer on the site (the page was changed since)
   const known = new Set(texts.map((t) => t.k));
-  const orphans = [...saved.values()].filter((r) => !known.has(r.key));
+  const orphans = [...saved.values()].filter((r) => !known.has(r.key) && !r.key.startsWith("img:")); // photos are edited on the page
   if (orphans.length && !q) {
     parts.push(h("details", { class: "tx-group" },
       h("summary", {}, h("span", {}, "No longer on the site"), h("span", { class: "a-hint" }, `${orphans.length} old ${orphans.length === 1 ? "edit" : "edits"}`)),

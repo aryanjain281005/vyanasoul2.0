@@ -11,7 +11,8 @@
     "check": "node tools/check.mjs",
     "build:3d": "esbuild src3d/app.js --bundle --minify --format=esm --target=es2020 --outfile=app3d.js",
     "deploy:preview": "npm run build && node tools/deploy-preview.mjs",
-    "build:admin": "esbuild admin-src/admin.js --bundle --minify --format=esm --target=es2020 --outfile=admin/admin.js"
+    "build:admin": "esbuild admin-src/admin.js --bundle --minify --format=esm --target=es2020 --outfile=admin/admin.js",
+    "build:edit": "esbuild edit-src/edit.js --bundle --minify --format=esm --target=es2020 --outfile=edit.js"
   },
   "devDependencies": {
     "@fontsource/mukta": "^5.1.0",

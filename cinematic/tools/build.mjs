@@ -13,7 +13,7 @@
 
 import fs from "node:fs";
 import path from "node:path";
-import { BUSINESS, STATIC, TARGETS } from "./config.mjs";
+import { BUSINESS, STATIC, SUPABASE_URL, TARGETS } from "./config.mjs";
 import { brokenAnchors, collectTexts, esc, needsTranslation, parseDocument, rebaseUrls, serialize, translate } from "./lib.mjs";
 
 const SRC = path.resolve(new URL("..", import.meta.url).pathname);
@@ -51,6 +51,7 @@ const scripts = SCRIPT_TEXT.map((s) => ({ ...s, ...scriptText(s) }));
 const textFor = (lang) => {
   const page = {}, js = {};
   for (const [k, v] of Object.entries(edits[lang] || {})) {
+    if (k.startsWith("img:")) continue; // photos, below
     const m = k.match(/^js:(\w+)\.(\w+)$/);
     if (m) (js[m[1]] ||= {})[m[2]] = v;
     else page[k] = v;
@@ -76,6 +77,35 @@ const hiDict = {
   ...EDIT.hi.page,
 };
 
+/* ---------- photos replaced in edit mode ----------
+   site_text "img:<original path>" holds {"src","w","h","pos"}: a photo uploaded to the
+   site-photos bucket and/or a new focus point. Both pages show the same photos. */
+const PHOTO_BASE = `${SUPABASE_URL}/storage/v1/object/public/site-photos/`;
+const PHOTOS = {};
+for (const [k, v] of Object.entries(edits.en || {})) {
+  if (!k.startsWith("img:")) continue;
+  let p = null;
+  try { p = JSON.parse(v); } catch (e) {}
+  const src = typeof p?.src === "string" && p.src.startsWith(PHOTO_BASE) ? p.src : null;
+  const pos = typeof p?.pos === "string" && /^\d{1,3}% \d{1,3}%$/.test(p.pos) ? p.pos : null;
+  if (src || pos) PHOTOS[k.slice(4)] = { src, w: Number(p.w) || null, h: Number(p.h) || null, pos };
+}
+const photoList = [];
+function placePhotos(root, file, lang) {
+  for (const img of root.querySelectorAll("body img[src]")) {
+    const key = img.getAttribute("src");
+    if (lang === "en" && file === "index.html") photoList.push({ k: key, w: Number(img.getAttribute("width")) || null, h: Number(img.getAttribute("height")) || null, pos: (img.getAttribute("style") || "").match(/object-position:\s*([^;]+)/)?.[1]?.trim() || "50% 50%", b: PHOTOS[key] || undefined });
+    const p = PHOTOS[key];
+    if (!p) continue;
+    img.setAttribute("data-vs-img", key);
+    if (p.src) {
+      img.setAttribute("src", p.src);
+      if (p.w && p.h) { img.setAttribute("width", String(p.w)); img.setAttribute("height", String(p.h)); }
+    }
+    if (p.pos) img.setAttribute("style", `object-position:${p.pos};` + (img.getAttribute("style") || "").replace(/object-position:[^;]*;?/, ""));
+  }
+}
+
 /* ---------- reviews ---------- */
 const STR = {
   en: { more: (n) => `Read ${n} more ${n === 1 ? "review" : "reviews"}` },
@@ -92,12 +122,12 @@ function reviewsHtml(lang) {
   const [main, ...grid] = top;
   const rest = reviews.filter((r) => !top.includes(r));
   const indent = "          ";
-  let html = `${indent}<figure class="review review-feature">\n${indent}  <blockquote translate="no"${langAttr(main)}><p>${esc(main.short || main.text)}</p></blockquote>\n${indent}  ${caption(main)}\n${indent}</figure>\n`;
+  let html = `${indent}<figure class="review review-feature" data-review="${esc(main.id)}">\n${indent}  <blockquote translate="no"${langAttr(main)}><p>${esc(main.short || main.text)}</p></blockquote>\n${indent}  ${caption(main)}\n${indent}</figure>\n`;
   html += `${indent}<div class="review-grid">\n` + grid.map((r) =>
-    `${indent}  <figure class="review">\n${indent}    <blockquote translate="no"${langAttr(r)}><p>${esc(r.short || r.text)}</p></blockquote>\n${indent}    ${caption(r)}\n${indent}  </figure>\n`).join("") + `${indent}</div>\n`;
+    `${indent}  <figure class="review" data-review="${esc(r.id)}">\n${indent}    <blockquote translate="no"${langAttr(r)}><p>${esc(r.short || r.text)}</p></blockquote>\n${indent}    ${caption(r)}\n${indent}  </figure>\n`).join("") + `${indent}</div>\n`;
   if (rest.length) {
     html += `${indent}<details class="all-reviews">\n${indent}  <summary translate="no">${STR[lang].more(rest.length)}</summary>\n${indent}  <div class="review-list">\n` +
-      rest.map((r) => `${indent}    <article class="review-item">\n${indent}      <blockquote translate="no"${langAttr(r)}>${paragraphs(r.text)}</blockquote>\n${indent}      ${caption(r, "div", "r-meta")}\n${indent}    </article>\n`).join("") +
+      rest.map((r) => `${indent}    <article class="review-item" data-review="${esc(r.id)}">\n${indent}      <blockquote translate="no"${langAttr(r)}>${paragraphs(r.text)}</blockquote>\n${indent}      ${caption(r, "div", "r-meta")}\n${indent}    </article>\n`).join("") +
       `${indent}  </div>\n${indent}</details>\n`;
   }
   return html;
@@ -187,6 +217,7 @@ function page(file, lang, { reviewsBlock = false, alternates = true, jsonld = fa
   if (reviewsBlock) html = html.replace(/[ \t]*<!-- reviews:start[\s\S]*?<!-- reviews:end -->\n?/, reviewsHtml(lang));
   const doc = parseDocument(html);
   const { root } = doc;
+  placePhotos(root, file, lang);
   if (lang === "en") texts.push(...describeTexts(root, file));
   if (lang === "en") translate(root, EDIT.en.page, null, { all: true });
   if (lang === "hi") {
@@ -294,10 +325,10 @@ function writeTextList() {
     }
   }
   const list = [...byKey.values()].map(({ pages, ...e }) => ({ ...e, p: pages.join(" "), n: e.n > 1 ? e.n : undefined }));
-  fs.writeFileSync(path.join(DIST, "admin", "texts.json"), JSON.stringify({ builtAt: new Date().toISOString(), target: targetName, texts: list }));
+  fs.writeFileSync(path.join(DIST, "admin", "texts.json"), JSON.stringify({ builtAt: new Date().toISOString(), target: targetName, texts: list, photos: photoList }));
   // edits for text that is no longer on the site (the source changed since)
   const known = new Set(byKey.keys());
-  const orphans = Object.keys(edits.en || {}).concat(Object.keys(edits.hi || {})).filter((k) => !known.has(k));
+  const orphans = Object.keys(edits.en || {}).concat(Object.keys(edits.hi || {})).filter((k) => !known.has(k) && !k.startsWith("img:"));
   if (orphans.length) console.warn(`${new Set(orphans).size} edited texts are no longer on the site; the admin lists them under "No longer on the site"`);
   return list.length;
 }

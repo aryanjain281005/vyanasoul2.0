@@ -66,7 +66,7 @@
         <button type="button" class="a-tab" id="tab-requests" aria-controls="panel-requests" aria-selected="true" role="tab">Requests <span class="a-count" id="count-new"></span></button>
         <button type="button" class="a-tab" id="tab-messages" aria-controls="panel-messages" aria-selected="false" role="tab">Messages <span class="a-count" id="count-msg"></span></button>
         <button type="button" class="a-tab" id="tab-reviews" aria-controls="panel-reviews" aria-selected="false" role="tab">Reviews</button>
-        <button type="button" class="a-tab" id="tab-text" aria-controls="panel-text" aria-selected="false" role="tab">Website text <span class="a-count" id="count-text"></span></button>
+        <button type="button" class="a-tab" id="tab-text" aria-controls="panel-text" aria-selected="false" role="tab">Edit website <span class="a-count" id="count-text"></span></button>
       </div>
 
       <section class="a-panel" id="panel-requests" role="tabpanel" aria-labelledby="tab-requests">
@@ -102,6 +102,24 @@
       </section>
 
       <section class="a-panel" id="panel-text" role="tabpanel" aria-labelledby="tab-text" hidden>
+        <div class="ed-hero">
+          <div class="ed-copy">
+            <h2>Edit the website by clicking on it</h2>
+            <p>Open the real website in edit mode. Click any heading, paragraph, button, photo or review and change it right there. Only you see your changes until you press <strong>Publish</strong>.</p>
+            <div class="ed-actions">
+              <a class="btn btn-primary" href="../?edit">Edit the English page</a>
+              <a class="btn btn-secondary" href="../hi/?edit">Edit the Hindi page <span lang="hi">(हिन्दी)</span></a>
+            </div>
+            <p class="a-hint">While you're signed in on this device, the website also shows an <strong>Edit this page</strong> button in the corner.</p>
+          </div>
+          <ol class="ed-how" aria-label="How it works">
+            <li><span><strong>Click</strong> the words, photo or review you want to change.</span></li>
+            <li><span><strong>Type</strong>, then press Save. It's saved straight away.</span></li>
+            <li><span><strong>Publish</strong> when you're happy, and visitors see it in about a minute.</span></li>
+          </ol>
+        </div>
+        <details class="tx-advanced">
+          <summary>Or find any text in a list <span class="a-hint">for searching, and for text that isn't on screen, like what Google shows</span></summary>
         <div class="a-toolbar">
           <div class="a-filters" role="group" aria-label="Language of the page">
             <button type="button" class="a-chip" id="tx-en" aria-pressed="true">English page</button>
@@ -121,6 +139,7 @@
         </ol>
         <p class="a-status" id="tx-status" role="status"></p>
         <div id="tx-list"></div>
+        </details>
       </section>
     </div>
   </main>

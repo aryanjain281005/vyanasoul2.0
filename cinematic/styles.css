@@ -1305,3 +1305,15 @@ html.has-thread .steps li { z-index: 1; }
   font-size: var(--fs-sm); line-height: 1.45;
 }
 .text-preview-bar p { flex: 1 1 18rem; margin: 0; }
+
+/* ================= 14. "Edit this page", for admins signed in on this device (edit.css styles edit mode) ================= */
+.edit-pill {
+  position: fixed; z-index: 60; left: var(--s-4); bottom: calc(var(--s-4) + env(safe-area-inset-bottom, 0px));
+  display: inline-flex; align-items: center; gap: var(--s-2); min-height: 40px; padding: 0 var(--s-4) 0 var(--s-3);
+  border: 1px solid var(--gold-line); border-radius: 999px; background: rgba(15, 11, 26, 0.9); color: var(--gold-300);
+  font: 600 var(--fs-sm)/1 var(--sans); text-decoration: none; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+}
+.edit-pill:hover { border-color: var(--gold-400); background: var(--ink-2); }
+.edit-pill svg { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+@media (max-width: 899px) { .edit-pill { bottom: calc(var(--s-4) + 72px + env(safe-area-inset-bottom, 0px)); } }

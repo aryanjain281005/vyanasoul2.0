@@ -182,7 +182,7 @@ Reviews come from the `reviews` table: the first four featured reviews appear on
 - **Requests**: new and in-progress first, search, one tap to WhatsApp/call/email, status and private notes, plus a warning with "Send again" if an alert didn't reach Telegram
 - **Messages**: contact messages
 - **Reviews**: as above
-- **Website text**: every text on the English and Hindi pages, see below
+- **Edit website**: opens the site in edit mode (below); a list of every text, for searching and for text that isn't on screen
 
 Access is enforced by row-level security (`profiles.role = 'admin'`), not by the page.
 
@@ -195,7 +195,19 @@ Rekha can change any text on the site without touching code: headings, paragraph
 - Saving in the admin writes `site_text`. **Preview on the page** stores the edits in the browser and opens the site with `?preview-text`, which shows them with a notice; only that browser sees them. **Update the website** calls the booking function's `/rebuild`, which runs the Vercel deploy hook (`npm run sync && npm run build:prod`).
 - Every earlier version is kept in `site_text_history`, so a mistaken edit can be put back from the SQL editor.
 - If the developer changes a text in `index.html`, its old edit no longer matches; the admin lists it under "No longer on the site", and the build says how many there are.
-- Email addresses and phone numbers aren't in the editor: they are also inside links, so they're changed in `tools/config.mjs`, `index.html` and `main.js`. Reviews are edited in the Reviews tab.
+- Email addresses and phone numbers aren't in the editor: they are also inside links, so they're changed in `tools/config.mjs`, `index.html` and `main.js`. Reviews are edited in edit mode or the Reviews tab.
+
+## Edit mode (`?edit`)
+
+The way Rekha changes the site: she opens the real page with `?edit` (from the admin's **Edit website** tab, or the **Edit this page** button the site shows to admins signed in on that device) and clicks what she wants to change.
+
+- `main.js` loads `edit.js` (bundled from `edit-src/edit.js` with `npm run build:edit`, styles in `edit.css`) only for that address; visitors never download it. It checks the Supabase session already in the browser and that the account is an admin, else it sends her to sign in and back (`admin/?next=`).
+- **Text**: hovering outlines what a click would edit; a click turns it into an editable field in place, with a bubble showing what it is, the original and **Use original**. Enter saves straight to `site_text`. Text that appears more than once changes everywhere. Saved but unpublished changes are washed gold (CSS Custom Highlight API).
+- **Photos**: a click opens a sheet to set the focus point (`object-position`), replace the photo (resized to 2000 px and converted to WebP in the browser, uploaded to the public `site-photos` bucket) and edit its description. Stored as `site_text` key `img:<original path>`, `en` = `{"src","w","h","pos"}`; the build swaps it in on both pages and lists the page's photos in `admin/texts.json`.
+- **Reviews**: a click opens the review form (the same fields as the Reviews tab); **+ Add a review** sits under the heading. Reviews are saved to the `reviews` table immediately. The build tags each review card with `data-review`.
+- **All text**: a searchable sheet for what can't be clicked: Google's title and description, booking-form and breathing messages, words only screen readers hear, the privacy page.
+- The dock: Edit / Browse (use the page normally), English / Hindi page, All text, the changes not live yet (each with Undo), **Publish** (the booking function's `/rebuild`), and Leave.
+- While editing, clicks don't follow links or press buttons, the intro doors are skipped, all questions and reviews are opened, and the opening film's visible chapter takes clicks.
 
 ## Search engines
 
