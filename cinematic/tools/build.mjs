@@ -51,7 +51,7 @@ const scripts = SCRIPT_TEXT.map((s) => ({ ...s, ...scriptText(s) }));
 const textFor = (lang) => {
   const page = {}, js = {};
   for (const [k, v] of Object.entries(edits[lang] || {})) {
-    if (k.startsWith("img:")) continue; // photos, below
+    if (k.startsWith("img:") || k === "gallery") continue; // photos, below
     const m = k.match(/^js:(\w+)\.(\w+)$/);
     if (m) (js[m[1]] ||= {})[m[2]] = v;
     else page[k] = v;
@@ -94,7 +94,7 @@ const photoList = [];
 function placePhotos(root, file, lang) {
   for (const img of root.querySelectorAll("body img[src]")) {
     const key = img.getAttribute("src");
-    if (lang === "en" && file === "index.html") photoList.push({ k: key, w: Number(img.getAttribute("width")) || null, h: Number(img.getAttribute("height")) || null, pos: (img.getAttribute("style") || "").match(/object-position:\s*([^;]+)/)?.[1]?.trim() || "50% 50%", b: PHOTOS[key] || undefined });
+    if (lang === "en" && file === "index.html") photoList.push({ k: key, alt: img.getAttribute("alt") || "", w: Number(img.getAttribute("width")) || null, h: Number(img.getAttribute("height")) || null, pos: (img.getAttribute("style") || "").match(/object-position:\s*([^;]+)/)?.[1]?.trim() || "50% 50%", b: PHOTOS[key] || undefined });
     const p = PHOTOS[key];
     if (!p) continue;
     img.setAttribute("data-vs-img", key);
@@ -104,6 +104,45 @@ function placePhotos(root, file, lang) {
     }
     if (p.pos) img.setAttribute("style", `object-position:${p.pos};` + (img.getAttribute("style") || "").replace(/object-position:[^;]*;?/, ""));
   }
+}
+
+/* ---------- the photo strips: photos added, removed or moved in edit mode ----------
+   site_text "gallery" holds {"strips":[[item, ...], [item, ...]]}, one list per .moment-strip.
+   An item is {"k": original path} or a photo uploaded in edit mode:
+   {"id","src","w","h","pos","alt":{"en","hi"}}. Without the row, the strips stay as written. */
+let GALLERY = null;
+try { GALLERY = JSON.parse(edits.en?.gallery || "null"); } catch (e) {}
+if (!Array.isArray(GALLERY?.strips)) GALLERY = null;
+const ALT_DEFAULT = { en: "A moment from Rekha's practice", hi: "रेखा जी के अभ्यास का एक पल" };
+const galleryInfo = { original: [], built: GALLERY || undefined };
+const POS = /^\d{1,3}% \d{1,3}%$/;
+const newPhotoOk = (it) => typeof it?.id === "string" && typeof it.src === "string" && it.src.startsWith(PHOTO_BASE);
+// each photo gets a column as wide as its shape, so the row keeps the photos' proportions
+const ratio = (w, h) => Math.min(1.6, Math.max(0.6, (Number(w) || 4) / (Number(h) || 3))).toFixed(2);
+function placeGallery(root, file, lang) {
+  if (file !== "index.html") return;
+  const strips = root.querySelectorAll(".moment-strip");
+  if (lang === "en") galleryInfo.original = strips.map((s) => s.querySelectorAll("img").map((i) => i.getAttribute("data-vs-img") || i.getAttribute("src")));
+  if (!GALLERY) return;
+  const originals = new Map(strips.flatMap((s) => s.querySelectorAll("img")).map((i) => [i.getAttribute("data-vs-img") || i.getAttribute("src"), i]));
+  strips.forEach((strip, n) => {
+    const items = (GALLERY.strips[n] || []).filter((it) => (it?.k ? originals.has(it.k) : newPhotoOk(it)));
+    const cols = [];
+    const html = items.map((it) => {
+      if (it.k) {
+        const img = originals.get(it.k);
+        cols.push(ratio(img.getAttribute("width"), img.getAttribute("height")));
+        return img.toString();
+      }
+      const alt = (it.alt?.[lang] || it.alt?.en || ALT_DEFAULT[lang]).trim();
+      cols.push(ratio(it.w, it.h));
+      return `<img translate="no" data-vs-new="${esc(it.id)}" style="object-position:${POS.test(it.pos) ? it.pos : "50% 50%"}" src="${esc(it.src)}"${it.w && it.h ? ` width="${Number(it.w)}" height="${Number(it.h)}"` : ""} loading="lazy" alt="${esc(alt)}">`;
+    });
+    strip.set_content(`\n          ${html.join("\n          ")}\n        `);
+    strip.setAttribute("data-count", String(items.length));
+    strip.setAttribute("style", `--cols:${cols.map((c) => `${c}fr`).join(" ")}`);
+    if (!items.length) strip.setAttribute("hidden", "");
+  });
 }
 
 /* ---------- reviews ---------- */
@@ -218,6 +257,7 @@ function page(file, lang, { reviewsBlock = false, alternates = true, jsonld = fa
   const doc = parseDocument(html);
   const { root } = doc;
   placePhotos(root, file, lang);
+  placeGallery(root, file, lang);
   if (lang === "en") texts.push(...describeTexts(root, file));
   if (lang === "en") translate(root, EDIT.en.page, null, { all: true });
   if (lang === "hi") {
@@ -325,10 +365,10 @@ function writeTextList() {
     }
   }
   const list = [...byKey.values()].map(({ pages, ...e }) => ({ ...e, p: pages.join(" "), n: e.n > 1 ? e.n : undefined }));
-  fs.writeFileSync(path.join(DIST, "admin", "texts.json"), JSON.stringify({ builtAt: new Date().toISOString(), target: targetName, texts: list, photos: photoList }));
+  fs.writeFileSync(path.join(DIST, "admin", "texts.json"), JSON.stringify({ builtAt: new Date().toISOString(), target: targetName, texts: list, photos: photoList, gallery: galleryInfo }));
   // edits for text that is no longer on the site (the source changed since)
   const known = new Set(byKey.keys());
-  const orphans = Object.keys(edits.en || {}).concat(Object.keys(edits.hi || {})).filter((k) => !known.has(k) && !k.startsWith("img:"));
+  const orphans = Object.keys(edits.en || {}).concat(Object.keys(edits.hi || {})).filter((k) => !known.has(k) && !k.startsWith("img:") && k !== "gallery");
   if (orphans.length) console.warn(`${new Set(orphans).size} edited texts are no longer on the site; the admin lists them under "No longer on the site"`);
   return list.length;
 }

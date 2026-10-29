@@ -3,7 +3,8 @@
 //   POST /booking          a session request from the site (public; validated, rate-limited;
 //                          { test: true } from the preview site is validated but not stored)
 //   POST /booking/resend   re-send the alerts for one request   (admin JWT)
-//   POST /booking/rebuild  trigger a production rebuild         (admin JWT)
+//   POST /booking/rebuild  publish the site: the Vercel deploy hook in production, or, before
+//                          launch, the GitHub workflow that rebuilds the preview      (admin JWT)
 //
 // A request is saved before any alert is sent, and the visitor gets their reference straight
 // away. Alerts run after the response; every attempt is logged in notification_log, and
@@ -218,9 +219,49 @@ async function resend(req: Request): Promise<Response> {
 async function rebuild(req: Request): Promise<Response> {
   if (!(await requireAdmin(req))) return json(req, 403, { error: "forbidden" });
   const hook = env("VERCEL_DEPLOY_HOOK_URL");
-  if (!hook) return json(req, 501, { error: "not_configured" });
-  const res = await fetch(hook, { method: "POST" }).catch(() => null);
-  return res?.ok ? json(req, 202, { ok: true }) : json(req, 502, { error: "hook_failed" });
+  if (hook) {
+    const res = await fetch(hook, { method: "POST" }).catch(() => null);
+    return res?.ok ? json(req, 202, { ok: true, target: "production" }) : json(req, 502, { error: "hook_failed" });
+  }
+  const token = env("GITHUB_PUBLISH_TOKEN");
+  if (!token) return json(req, 501, { error: "not_configured" });
+  try {
+    await publishPreview(token);
+    return json(req, 202, { ok: true, target: "preview" });
+  } catch (e) {
+    console.error("publish preview", e);
+    return json(req, 502, { error: "github_failed" });
+  }
+}
+
+// Before launch: point the publish-preview branch at a new commit on top of the site's branch.
+// That push runs .github/workflows/publish-preview.yml, which syncs, builds and deploys the preview.
+// (A push, not workflow_dispatch: dispatch only works for workflows on the default branch.)
+async function publishPreview(token: string): Promise<void> {
+  const repo = env("GITHUB_REPO") || "aryanjain281005/vyanasoul2.0";
+  const branch = env("GITHUB_BRANCH") || "v2-backend";
+  const gh = async (path: string, init: { method?: string; body?: unknown } = {}) => {
+    const res = await fetch(`https://api.github.com/repos/${repo}${path}`, {
+      method: init.method || "GET",
+      headers: {
+        Authorization: `Bearer ${token}`, Accept: "application/vnd.github+json",
+        "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "vyana-soul-publish",
+        ...(init.body ? { "Content-Type": "application/json" } : {}),
+      },
+      body: init.body ? JSON.stringify(init.body) : undefined,
+    });
+    return { status: res.status, data: await res.json().catch(() => ({})) };
+  };
+  const head = await gh(`/git/ref/heads/${branch}`);
+  if (head.status !== 200) throw new Error(`branch: ${head.status}`);
+  const parent = head.data.object.sha;
+  const tip = await gh(`/git/commits/${parent}`);
+  if (tip.status !== 200) throw new Error(`commit: ${tip.status}`);
+  const made = await gh("/git/commits", { method: "POST", body: { message: "Publish the preview (from the admin)", tree: tip.data.tree.sha, parents: [parent] } });
+  if (made.status !== 201) throw new Error(`new commit: ${made.status}`);
+  let ref = await gh("/git/refs/heads/publish-preview", { method: "PATCH", body: { sha: made.data.sha, force: true } });
+  if (ref.status === 422 || ref.status === 404) ref = await gh("/git/refs", { method: "POST", body: { ref: "refs/heads/publish-preview", sha: made.data.sha } });
+  if (ref.status !== 200 && ref.status !== 201) throw new Error(`branch update: ${ref.status}`);
 }
 
 Deno.serve(async (req) => {

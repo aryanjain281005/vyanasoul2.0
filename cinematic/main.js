@@ -500,7 +500,8 @@
   const meta = (n) => (document.querySelector(`meta[name="${n}"]`)?.content || "").trim();
   const ENDPOINT = meta("vs-booking-endpoint");
   const SITEKEY = meta("vs-turnstile-sitekey");
-  const TEST_MODE = meta("vs-booking-mode") === "test"; // preview site: checked by the function, never saved
+  // preview site: checked by the function, never saved; ?real-booking sends a real one, to test the whole path
+  const TEST_MODE = meta("vs-booking-mode") === "test" && !/[?&]real-booking\b/.test(location.search);
 
   const form = document.getElementById("book-form");
   const F = form.elements;

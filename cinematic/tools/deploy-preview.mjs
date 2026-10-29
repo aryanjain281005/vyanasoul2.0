@@ -17,6 +17,7 @@ const sha = git(["rev-parse", "--short", "HEAD"], dist);
 
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), "vs-preview-"));
 fs.cpSync(dist, tmp, { recursive: true });
+fs.writeFileSync(path.join(tmp, ".nojekyll"), ""); // serve files as they are, without Jekyll
 git(["init", "-q", "-b", "gh-pages"], tmp);
 git(["add", "-A"], tmp);
 git(["-c", "user.name=Vyana Soul deploy", "-c", "user.email=deploy@vyanasoul.com", "commit", "-q", "-m", `Preview build of ${sha}`], tmp);

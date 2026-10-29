@@ -1,0 +1,40 @@
+# Publish the GitHub Pages preview with the latest saved edits.
+# Runs when the admin presses Publish before launch: the booking function moves the
+# publish-preview branch to a new commit on top of v2-backend (see supabase/functions/booking).
+name: Publish the preview
+
+on:
+  push:
+    branches: [publish-preview]
+
+permissions:
+  contents: write # push the built site to gh-pages
+
+concurrency:
+  group: publish-preview
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: cinematic
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: cinematic/package-lock.json
+      - run: npm ci
+      - name: Pull reviews and edited text from Supabase
+        run: npm run sync
+      - name: Build the preview
+        run: npm run build
+      - name: Deploy to gh-pages
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git remote set-url origin "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          node tools/deploy-preview.mjs

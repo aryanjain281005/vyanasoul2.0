@@ -24,6 +24,15 @@ html.vs-edit .text-preview-bar { display: none; }
 }
 [data-review].vs-new::after { content: "New: appears in its place when you publish"; }
 .vs-add-review { margin: var(--s-4) 0 var(--s-6); }
+.vs-add-photo {
+  flex: 0 0 9rem; display: grid; place-items: center; align-content: center; gap: 8px; min-height: 100%; padding: 12px;
+  border: 1.5px dashed rgba(240, 201, 133, 0.45); border-radius: 12px; background: rgba(240, 201, 133, 0.05);
+  color: var(--gold-300); font: 600 0.9rem/1.2 var(--sans); cursor: pointer; transition: background-color 0.15s, border-color 0.15s;
+}
+.vs-add-photo:hover { background: rgba(240, 201, 133, 0.12); border-color: var(--gold-300); }
+.vs-add-photo .vs-ic { width: 26px; height: 26px; }
+.vs-add-photo.vs-full { color: var(--text-3); border-color: var(--hairline); }
+html.vs-browse .vs-add-photo, html.vs-browse .vs-add-review { display: none; }
 
 /* ---------- shared pieces ---------- */
 .vs-ui { font: 400 0.9375rem/1.5 var(--sans); color: var(--text-1); }

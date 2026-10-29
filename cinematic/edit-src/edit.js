@@ -214,8 +214,8 @@ function targetAt(x, y) {
     const ts = textsShowing(norm(node.nodeValue));
     if (ts && within(rectsOf(node), x, y) && visible(node.parentElement)) return { type: "text", node, ts };
   }
-  const img = stack.find((e) => e.tagName === "IMG" && photoKey(e));
-  if (img && visible(img)) return { type: "photo", el: img, key: photoKey(img) };
+  const img = stack.find((e) => e.tagName === "IMG" && !e.closest(".vs-ui") && (e.dataset.vsNew || photoKey(e)));
+  if (img && visible(img)) return img.dataset.vsNew ? { type: "photo", el: img, id: img.dataset.vsNew } : { type: "photo", el: img, key: photoKey(img) };
   return null;
 }
 
@@ -460,56 +460,73 @@ function closeSheets() {
   $("#vs-changes-btn")?.setAttribute("aria-expanded", "false");
 }
 
-function openPhoto(k) {
-  const p = photos.find((x) => x.k === k);
-  const img = $$("img").find((i) => !i.closest(".vs-ui") && photoKey(i) === k);
-  const s = photoNow(k);
-  const preview = h("img", { src: s.src || ROOT + k, alt: "" });
+async function uploadPhoto(file, name) {
+  if (!/^image\//.test(file.type)) throw new Error("not-image");
+  const { blob, w, h: hgt } = await preparePhoto(file);
+  const slug = name.replace(/^.*\//, "").replace(/\.\w+$/, "").replace(/[^a-z0-9-]+/gi, "-").toLowerCase() || "photo";
+  const path = `${slug}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}.${blob.type === "image/webp" ? "webp" : "jpg"}`;
+  const up = await sb.storage.from(BUCKET).upload(path, blob, { contentType: blob.type, cacheControl: "31536000", upsert: false });
+  if (up.error) throw up.error;
+  return { src: sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl, w, h: hgt };
+}
+const uploadError = (x) => (x?.message === "not-image" ? "That file isn't a photo. Choose a JPG, PNG or WebP photo."
+  : /HEIC|decode|source image/i.test(String(x?.message)) ? "This browser can't read that photo. Try a JPG or PNG."
+  : `Not uploaded: ${x?.message || "try again"}`);
+
+// the photo with a dot on its focus point; a tap moves the dot and calls onPick("x% y%")
+function focusFrame(src, pos, onPick) {
+  const preview = h("img", { src, alt: "" });
   const dot = h("span", { class: "vs-focus-dot" });
-  const placeDot = (pos) => { const [x, y] = pos.split(" "); dot.style.left = x; dot.style.top = y; };
-  placeDot(s.pos);
-  let posT;
+  const place = (p) => { const [x, y] = p.split(" "); dot.style.left = x; dot.style.top = y; };
+  place(pos);
+  let t;
   const frame = h("div", { class: "vs-photo-frame", onclick: (e) => {
     const b = preview.getBoundingClientRect();
     const x = Math.round(Math.min(100, Math.max(0, ((e.clientX - b.left) / b.width) * 100)));
     const y = Math.round(Math.min(100, Math.max(0, ((e.clientY - b.top) / b.height) * 100)));
-    const pos = `${x}% ${y}%`;
-    placeDot(pos);
-    for (const i of $$("img")) if (!i.closest(".vs-ui") && photoKey(i) === k) i.style.objectPosition = pos;
-    clearTimeout(posT);
-    posT = setTimeout(async () => { if (await savePhoto(k, { pos })) toast("Focus point saved."); }, 350);
+    const p = `${x}% ${y}%`;
+    place(p);
+    clearTimeout(t);
+    onPick(p, true);
+    t = setTimeout(() => onPick(p, false), 350);
   } }, preview, dot);
+  return { frame, set: (s, p) => { preview.src = s; place(p); } };
+}
+const FOCUS_NOTE = "Tap the photo where the eye should go. Screens crop photos differently, and that spot always stays in view.";
+const ALT_NOTE = "Read out to people who can't see the photo, and used by Google. Say what's in it.";
+
+function openPhoto(k) {
+  const p = photos.find((x) => x.k === k);
+  const img = $$("img").find((i) => !i.closest(".vs-ui") && photoKey(i) === k);
+  const s = photoNow(k);
+  const view = focusFrame(s.src || ROOT + k, s.pos, async (pos, quick) => {
+    for (const i of $$("img")) if (!i.closest(".vs-ui") && photoKey(i) === k) i.style.objectPosition = pos;
+    if (!quick && await savePhoto(k, { pos })) toast("Focus point saved.");
+  });
   const file = h("input", { type: "file", accept: "image/*", hidden: true });
   const status = h("p", { class: "vs-note", role: "status" });
   const replace = h("button", { type: "button", class: "vs-btn vs-primary", onclick: () => file.click() }, icon("up"), "Replace photo");
   file.addEventListener("change", async () => {
     const f = file.files[0];
     if (!f) return;
-    if (!/^image\//.test(f.type)) { status.textContent = "That file isn't a photo. Choose a JPG, PNG, WebP or HEIC photo."; return; }
     replace.classList.add("is-loading"); replace.disabled = true;
-    status.textContent = "Preparing the photo…";
+    status.textContent = "Uploading…";
     try {
-      const { blob, w, h: hgt } = await preparePhoto(f);
-      status.textContent = "Uploading…";
-      const slug = k.replace(/^.*\//, "").replace(/\.\w+$/, "").replace(/[^a-z0-9-]+/gi, "-").toLowerCase();
-      const path = `${slug}-${Date.now().toString(36)}.${blob.type === "image/webp" ? "webp" : "jpg"}`;
-      const up = await sb.storage.from(BUCKET).upload(path, blob, { contentType: blob.type, cacheControl: "31536000", upsert: false });
-      if (up.error) throw up.error;
-      const src = sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl;
-      if (await savePhoto(k, { src, w, h: hgt, pos: "50% 50%" })) {
-        preview.src = src; placeDot("50% 50%");
+      const up = await uploadPhoto(f, k);
+      if (await savePhoto(k, { ...up, pos: "50% 50%" })) {
+        view.set(up.src, "50% 50%");
         status.textContent = "New photo saved. Tap it above to choose what stays in view.";
         restore.hidden = false;
       }
     } catch (x) {
-      status.textContent = /HEIC|decode|source image/i.test(String(x?.message)) ? "This browser can't read that photo. Try a JPG or PNG." : `Not uploaded: ${x?.message || "try again"}`;
+      status.textContent = uploadError(x);
     } finally {
       replace.classList.remove("is-loading"); replace.disabled = false; file.value = "";
     }
   });
   const restore = h("button", { type: "button", class: "vs-btn", hidden: !s.src && s.pos === p.pos, onclick: async () => {
     if (await savePhoto(k, { src: null, w: p.w, h: p.h, pos: p.pos })) {
-      preview.src = ROOT + k; placeDot(p.pos); restore.hidden = true;
+      view.set(ROOT + k, p.pos); restore.hidden = true;
       status.textContent = "Back to the original photo.";
     }
   } }, "Use the original photo");
@@ -524,11 +541,213 @@ function openPhoto(k) {
     });
   }
   openSheet("Photo",
-    frame,
-    h("p", { class: "vs-note" }, "Tap the photo where the eye should go. Screens crop photos differently, and that spot always stays in view."),
+    view.frame, h("p", { class: "vs-note" }, FOCUS_NOTE),
     h("div", { class: "vs-row" }, replace, restore), file, status,
-    alt ? h("label", { class: "vs-field" }, h("span", {}, `Description (${LANG_NAME[LANG]})`), alt,
-      h("small", {}, "Read out to people who can't see the photo, and used by Google. Say what's in it.")) : null,
+    alt ? h("label", { class: "vs-field" }, h("span", {}, `Description (${LANG_NAME[LANG]})`), alt, h("small", {}, ALT_NOTE)) : null,
+    img?.closest(".moment-strip") ? galleryControls({ k }) : null,
+    h("p", { class: "vs-note vs-quiet" }, "The English and Hindi pages show the same photos."),
+  );
+}
+
+/* ---------------- 5b. the photo rows: add, remove, move ----------------
+   site_text "gallery" = {"strips":[[item, ...], ...]}, one list per .moment-strip. An item is
+   {"k": original path} or a photo added here: {"id","src","w","h","pos","alt":{"en","hi"}}.
+   The build lays the rows out from it on both pages. */
+const ALT_DEFAULT = { en: "A moment from Rekha's practice", hi: "रेखा जी के अभ्यास का एक पल" };
+const ROW_MAX = 6; // more than this and the photos get too thin on a laptop
+let gallery = { original: [], built: null };
+const clone = (o) => JSON.parse(JSON.stringify(o));
+const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+const galleryOriginal = () => ({ strips: gallery.original.map((row) => row.map((k) => ({ k }))) });
+const galleryLive = () => gallery.built || galleryOriginal();
+function galleryNow() {
+  try { const g = JSON.parse(saved.get("gallery")?.en || "null"); if (Array.isArray(g?.strips)) return g; } catch (e) {}
+  return galleryLive();
+}
+const galleryChanged = () => !same(galleryNow(), galleryLive());
+const findItem = (g, ref) => {
+  for (const [n, row] of g.strips.entries()) {
+    const i = row.findIndex((it) => (ref.k ? it.k === ref.k : it.id === ref.id));
+    if (i >= 0) return [n, i];
+  }
+  return [-1, -1];
+};
+const photoEls = new Map(); // "k:<original path>" or "id:<id>" -> its <img>, kept while it's out of the rows
+const ratio = (w, hh) => Math.min(1.6, Math.max(0.6, (Number(w) || 4) / (Number(hh) || 3))).toFixed(2);
+function photoEl(it) {
+  if (it.k) {
+    let img = photoEls.get(`k:${it.k}`);
+    if (!img) {
+      const p = photos.find((x) => x.k === it.k);
+      if (!p) return null;
+      const altT = texts.find((t) => t.k === norm(p.alt));
+      img = h("img", { src: ROOT + it.k, width: p.w, height: p.h, loading: "lazy", alt: altT ? current(altT) : p.alt, "data-vs-img": it.k });
+      img.style.objectPosition = p.pos;
+      photoEls.set(`k:${it.k}`, img);
+    }
+    return img;
+  }
+  let img = photoEls.get(`id:${it.id}`);
+  if (!img) { img = h("img", { translate: "no", "data-vs-new": it.id, loading: "lazy" }); photoEls.set(`id:${it.id}`, img); }
+  if (img.getAttribute("src") !== it.src) img.setAttribute("src", it.src);
+  if (it.w && it.h) { img.setAttribute("width", it.w); img.setAttribute("height", it.h); }
+  img.style.objectPosition = it.pos || "50% 50%";
+  img.alt = (it.alt?.[LANG] || it.alt?.en || ALT_DEFAULT[LANG]).trim();
+  return img;
+}
+function renderGallery() {
+  const g = galleryNow();
+  $$(".moment-strip").forEach((strip, n) => {
+    const items = g.strips[n] || [];
+    const imgs = items.map(photoEl).filter(Boolean);
+    const full = items.length >= ROW_MAX;
+    const add = h("button", { type: "button", class: `vs-ui vs-add-photo${full ? " vs-full" : ""}`, onclick: () => addPhotos(n) },
+      icon("photo"), h("span", {}, full ? "Row full" : "Add photos"));
+    strip.replaceChildren(...imgs, add);
+    strip.hidden = false;
+    strip.dataset.count = String(items.length);
+    strip.style.setProperty("--cols", [...imgs.map((i) => `${ratio(i.getAttribute("width"), i.getAttribute("height"))}fr`), "minmax(8.5rem, 0.45fr)"].join(" "));
+  });
+  for (const p of photos) if (photoChanged(p.k)) showPhoto(p.k);
+}
+async function saveGallery(g, msg = "") {
+  const key = "gallery";
+  const prev = saved.get(key);
+  const isOriginal = same(g, galleryOriginal());
+  if (isOriginal) saved.delete(key);
+  else saved.set(key, { key, en: JSON.stringify(g), hi: null });
+  renderGallery();
+  saving++; updateDock();
+  const { error } = isOriginal
+    ? (prev ? await sb.from("site_text").delete().eq("key", key) : { error: null })
+    : await sb.from("site_text").upsert(saved.get(key), { onConflict: "key" });
+  saving--;
+  if (error) {
+    if (prev) saved.set(key, prev); else saved.delete(key);
+    renderGallery(); updateDock();
+    toast(`Not saved: ${error.message}`, "error");
+    return false;
+  }
+  updateDock();
+  if (msg) toast(msg);
+  return true;
+}
+async function patchItem(ref, patch, msg) {
+  const g = clone(galleryNow());
+  const [n, i] = findItem(g, ref);
+  if (n < 0) return false;
+  g.strips[n][i] = { ...g.strips[n][i], ...patch };
+  return saveGallery(g, msg);
+}
+const reopen = (ref) => (ref.k ? openPhoto(ref.k) : openNewPhoto(ref.id));
+
+function addPhotos(n) {
+  const room = ROW_MAX - (galleryNow().strips[n]?.length || 0);
+  if (room <= 0) { toast(`This row has ${ROW_MAX} photos, the most that fit. Remove one first, or add to the other row.`, "error"); return; }
+  const input = h("input", { type: "file", accept: "image/*", multiple: true });
+  input.addEventListener("change", async () => {
+    const files = [...input.files].slice(0, room);
+    const added = [];
+    for (const [i, f] of files.entries()) {
+      toast(files.length > 1 ? `Uploading photo ${i + 1} of ${files.length}…` : "Uploading the photo…");
+      try {
+        const up = await uploadPhoto(f, "photo");
+        added.push({ id: `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, ...up, pos: "50% 50%", alt: { en: "", hi: "" } });
+      } catch (x) { toast(uploadError(x), "error"); }
+    }
+    if (!added.length) return;
+    const g = clone(galleryNow());
+    while (g.strips.length <= n) g.strips.push([]);
+    g.strips[n].push(...added);
+    const skipped = input.files.length - files.length;
+    if (await saveGallery(g)) {
+      openNewPhoto(added[0].id);
+      toast((added.length === 1 ? "Photo added. Write a short description of it." : `${added.length} photos added. Click each one to describe it.`)
+        + (skipped ? ` ${skipped} didn't fit in this row.` : ""));
+    }
+  });
+  input.click();
+}
+async function moveItem(ref, d) {
+  const g = clone(galleryNow());
+  const [n, i] = findItem(g, ref);
+  const row = g.strips[n], j = i + d;
+  if (n < 0 || j < 0 || j >= row.length) return;
+  [row[i], row[j]] = [row[j], row[i]];
+  if (await saveGallery(g, "Moved.")) reopen(ref);
+}
+async function moveRow(ref) {
+  const g = clone(galleryNow());
+  const [n, i] = findItem(g, ref);
+  const to = n === 0 ? 1 : 0;
+  if (n < 0 || !g.strips[to]) return;
+  if (g.strips[to].length >= ROW_MAX) { toast(`The other row already has ${ROW_MAX} photos.`, "error"); return; }
+  g.strips[to].push(...g.strips[n].splice(i, 1));
+  if (await saveGallery(g, "Moved to the other row.")) reopen(ref);
+}
+async function removeItem(ref) {
+  if (!confirm("Remove this photo from the website? Until you publish, you can bring it back with Undo.")) return;
+  const g = clone(galleryNow());
+  const [n, i] = findItem(g, ref);
+  if (n < 0) return;
+  g.strips[n].splice(i, 1);
+  if (await saveGallery(g, "Photo removed. Visitors still see it until you publish.")) closeSheets();
+}
+function galleryControls(ref) {
+  const g = galleryNow();
+  const [n, i] = findItem(g, ref);
+  if (n < 0) return null;
+  const last = g.strips[n].length - 1;
+  return h("div", { class: "vs-field" },
+    h("span", {}, "Place in the photo rows"),
+    h("div", { class: "vs-row" },
+      h("button", { type: "button", class: "vs-btn", disabled: i === 0, onclick: () => moveItem(ref, -1) }, "Move left"),
+      h("button", { type: "button", class: "vs-btn", disabled: i === last, onclick: () => moveItem(ref, 1) }, "Move right"),
+      g.strips.length > 1 ? h("button", { type: "button", class: "vs-btn", onclick: () => moveRow(ref) }, n === 0 ? "Move to the lower row" : "Move to the upper row") : null),
+    h("div", { class: "vs-row" }, h("button", { type: "button", class: "vs-btn vs-danger", onclick: () => removeItem(ref) }, "Remove from the website")));
+}
+
+// a photo added in edit mode: everything about it lives in its gallery item
+function openNewPhoto(id) {
+  const g = galleryNow();
+  const [n, i] = findItem(g, { id });
+  if (n < 0) return;
+  const it = g.strips[n][i];
+  const view = focusFrame(it.src, it.pos || "50% 50%", (pos, quick) => {
+    const img = photoEls.get(`id:${id}`);
+    if (img) img.style.objectPosition = pos;
+    if (!quick) patchItem({ id }, { pos }, "Focus point saved.");
+  });
+  const file = h("input", { type: "file", accept: "image/*", hidden: true });
+  const status = h("p", { class: "vs-note", role: "status" });
+  const replace = h("button", { type: "button", class: "vs-btn vs-primary", onclick: () => file.click() }, icon("up"), "Replace photo");
+  file.addEventListener("change", async () => {
+    const f = file.files[0];
+    if (!f) return;
+    replace.classList.add("is-loading"); replace.disabled = true;
+    status.textContent = "Uploading…";
+    try {
+      const up = await uploadPhoto(f, "photo");
+      if (await patchItem({ id }, { ...up, pos: "50% 50%" })) { view.set(up.src, "50% 50%"); status.textContent = "New photo saved."; }
+    } catch (x) { status.textContent = uploadError(x); }
+    finally { replace.classList.remove("is-loading"); replace.disabled = false; file.value = ""; }
+  });
+  // no translation file covers a new photo, so both descriptions are written here
+  const altField = (lang) => {
+    const ta = h("textarea", { class: "vs-input", rows: "2", lang, placeholder: lang === "en" ? "For example: Rekha leading a group meditation at sunrise" : "जैसे: सूर्योदय पर समूह ध्यान कराती रेखा जी" });
+    ta.value = it.alt?.[lang] || "";
+    ta.addEventListener("keydown", (e) => e.stopPropagation());
+    ta.addEventListener("change", () => {
+      const now = galleryNow().strips[n]?.find((x) => x.id === id);
+      patchItem({ id }, { alt: { ...(now?.alt || {}), [lang]: ta.value.trim() } }, "Description saved.");
+    });
+    return h("label", { class: "vs-field" }, h("span", {}, `Description (${LANG_NAME[lang]})`), ta);
+  };
+  openSheet("Photo",
+    view.frame, h("p", { class: "vs-note" }, FOCUS_NOTE),
+    h("div", { class: "vs-row" }, replace), file, status,
+    altField("en"), altField("hi"), h("small", { class: "vs-note vs-quiet" }, ALT_NOTE),
+    galleryControls({ id }),
     h("p", { class: "vs-note vs-quiet" }, "The English and Hindi pages show the same photos."),
   );
 }
@@ -720,6 +939,7 @@ function pendingList() {
     if (current(t, lang) !== published(t, lang)) out.push({ kind: "text", t, lang });
   }
   for (const p of photos) if (photoChanged(p.k)) out.push({ kind: "photo", k: p.k });
+  if (galleryChanged()) out.push({ kind: "gallery" });
   for (const r of reviews.values()) if (builtAt && (r.updated_at || r.created_at) > builtAt) out.push({ kind: "review", r });
   return out;
 }
@@ -756,6 +976,7 @@ function renderChanges() {
       }
       if (c.kind === "photo") return row("Photo", h("p", {}, `${c.k.replace(/^.*\//, "")}: ${photoNow(c.k).src !== photoLive(c.k).src ? "new photo" : "new focus point"}`),
         () => revertPhoto(c.k));
+      if (c.kind === "gallery") return row("Photo rows", h("p", {}, "Photos added, removed or moved"), () => saveGallery(clone(galleryLive()), "The photo rows are back as they are on the website."));
       return row("Review", h("p", {}, `${(c.r.name || "").trim()}: ${c.r.published === false ? "hidden" : "edited or added"}`));
     })),
     h("div", { class: "vs-row vs-sheet-actions" }, publishButton(true)),
@@ -776,9 +997,31 @@ async function publish(e) {
   }).catch(() => null);
   btn.classList.remove("is-loading");
   const status = res?.status;
-  if (status === 202) toast("Publishing. Visitors see your changes in about a minute.");
+  if (status === 202) { toast("Publishing. This takes a minute or two; you'll see a message here when it's live."); watchPublish(builtAt); }
   else if (status === 501) toast("Publishing switches on when the new website launches. Your changes are saved; the developer can publish this preview for you.", "error");
   else toast("Publishing didn't start. Check the connection and try again in a minute.", "error");
+}
+
+// the build writes a new texts.json; when it appears, the site is live with the changes
+let watching = false;
+async function watchPublish(since) {
+  if (watching) return;
+  watching = true;
+  const until = Date.now() + 10 * 60000;
+  while (Date.now() < until) {
+    await new Promise((r) => setTimeout(r, 15000));
+    const list = await fetch(`${ROOT}admin/texts.json?t=${Date.now()}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    if (!list || list.builtAt === since) continue;
+    texts = list.texts; photos = list.photos || []; builtAt = list.builtAt;
+    pageTexts = texts.filter((t) => !isJs(t) && t.p.split(" ").includes(PAGE));
+    gallery = { original: list.gallery?.original || gallery.original, built: list.gallery?.built || null };
+    rebuildIndex(); markChanges(); updateDock();
+    toast("Published. Visitors now see your changes.");
+    watching = false;
+    return;
+  }
+  watching = false;
+  toast("Publishing is taking longer than usual. Reload the page in a few minutes to check.", "error");
 }
 
 function setMode(m) {
@@ -865,6 +1108,12 @@ async function start() {
   if (hero?.querySelector(".hw")) hero.textContent = norm(hero.textContent); // fx.js split it into words for the reveal
   for (const t of pageTexts) if (changed(t)) swapText(published(t), current(t));
   for (const p of photos) if (photoChanged(p.k)) showPhoto(p.k);
+  gallery = { original: list.gallery?.original || [], built: list.gallery?.built || null };
+  for (const img of $$(".moment-strip img")) {
+    if (img.dataset.vsNew) photoEls.set(`id:${img.dataset.vsNew}`, img);
+    else if (photoKey(img)) photoEls.set(`k:${photoKey(img)}`, img);
+  }
+  if (gallery.original.length) renderGallery();
   for (const card of $$("[data-review]")) {
     const r = reviews.get(card.dataset.review);
     if (r && (r.updated_at || r.created_at) > builtAt) fillCard(card, r);
@@ -915,7 +1164,7 @@ async function start() {
     showHL(null);
     if (t.type === "text") startText(t);
     else if (t.type === "hint") startHint(t);
-    else if (t.type === "photo") openPhoto(t.key);
+    else if (t.type === "photo") { if (t.id) openNewPhoto(t.id); else openPhoto(t.key); }
     else if (t.type === "review") openReview(t.el);
   }, true);
   addEventListener("submit", (e) => { if (mode === "edit" && !e.target.closest(".vs-ui")) e.preventDefault(); }, true);

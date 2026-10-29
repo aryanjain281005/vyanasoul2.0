@@ -349,7 +349,7 @@ async function updateWebsite(button, statusEl) {
   button.classList.add("is-loading");
   const { status } = await callFunction("rebuild");
   button.classList.remove("is-loading");
-  statusEl.textContent = status === 202 ? "The website is updating. Changes appear in about a minute."
+  statusEl.textContent = status === 202 ? "The website is updating. Changes appear in a minute or two."
     : status === 501 ? "Automatic updates aren't switched on yet. Ask the developer to publish the site."
     : "The update didn't start. Try again in a minute.";
 }
