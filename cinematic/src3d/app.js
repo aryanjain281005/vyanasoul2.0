@@ -240,6 +240,10 @@ function boot() {
   const ceilMat = new THREE.MeshLambertMaterial({ color: 0x150f1c, transparent: true, opacity: 1, depthWrite: true });
   const ceiling = new THREE.Mesh(new THREE.PlaneGeometry(9, LEN), ceilMat);
   ceiling.rotation.x = Math.PI / 2; ceiling.position.set(0, TOP + 0.3 + (AISLE + 0.06) * 1.25 + 0.15, ZC);
+  // drawn before the vortex and without depth, so the vortex glows through it as it fades,
+  // instead of being cut off at the ceiling line while rising into the sky
+  ceilMat.depthWrite = false;
+  ceiling.renderOrder = -0.5;
   scene.add(ceiling);
 
   const floor = new THREE.Mesh(new THREE.PlaneGeometry(BACK * 2 + 0.4, LEN), new THREE.MeshLambertMaterial({ map: floorMap, color: 0x9a8f9e }));
@@ -561,8 +565,11 @@ function boot() {
   }
 
   /* ------------------------------------------------------------ vortex / galaxy */
-  // particles stream inward along silk-like strands on five spiral arms
-  const vortexU = { ...pointUniforms, uAmount: { value: 0 }, uTilt: { value: 0 }, uScale: { value: 2.2 }, uSpin: { value: 1 }, uViolet: { value: 0.3 }, uCenter: { value: new THREE.Vector3(0, 3.2, -3.6) } };
+  // particles stream inward along silk-like strands on five spiral arms. The disc always faces
+  // the reader (uBasis, set each frame), so it never turns edge-on and vanishes; on the way into
+  // the sky it grows, opens its arms (uOpen) and leans back only a little. uPhase is integrated
+  // in JS, so a change of speed never makes the particles jump.
+  const vortexU = { ...pointUniforms, uAmount: { value: 0 }, uPhase: { value: 0 }, uOpen: { value: 0 }, uScale: { value: 2.2 }, uViolet: { value: 0.3 }, uCenter: { value: new THREE.Vector3(0, 3.2, -3.6) }, uBasis: { value: new THREE.Matrix3() } };
   {
     const n = Q.vortex;
     const aArm = new Float32Array(n), aStr = new Float32Array(n), aS0 = new Float32Array(n), aSd = new Float32Array(n);
@@ -581,17 +588,15 @@ function boot() {
     g.setAttribute("aSd", new THREE.BufferAttribute(aSd, 1));
     const vortex = new THREE.Points(g, new THREE.ShaderMaterial({
       uniforms: vortexU, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
-      vertexShader: `uniform float uPx, uTime, uAmount, uTilt, uScale, uSpin, uViolet; uniform vec3 uCenter;
+      vertexShader: `uniform float uPx, uAmount, uPhase, uOpen, uScale, uViolet; uniform vec3 uCenter; uniform mat3 uBasis;
         attribute float aArm, aStr, aS0, aSd; varying vec3 vC; varying float vA;
         void main(){
-          float s = fract(aS0 - uTime*0.045*uSpin);              // flows inward
+          float s = fract(aS0 - uPhase*0.045);                   // flows inward
           float form = smoothstep(aSd*0.55, aSd*0.55 + 0.45, uAmount);
           float r = (0.06 + 0.94*pow(s, 0.85))*uScale*(0.2 + 0.8*form);
-          float ang = aArm*1.2566371 + aStr*(0.18 + 0.55*s) + s*5.2 + uTime*0.18*uSpin;
-          vec3 p = vec3(cos(ang)*r, sin(ang)*r, (aSd - 0.5)*0.18*s*uScale);
-          float t = uTilt*1.5707963;
-          p = vec3(p.x, p.y*cos(t) - p.z*sin(t), p.y*sin(t) + p.z*cos(t));
-          vec4 mv = modelViewMatrix*vec4(uCenter + p, 1.0);
+          float ang = aArm*1.2566371 + aStr*(0.18 + 0.55*s)*(1.0 + 0.8*uOpen) + s*mix(5.2, 3.4, uOpen) + uPhase*0.18;
+          vec3 p = vec3(cos(ang)*r, sin(ang)*r, (aSd - 0.5)*0.18*s*uScale*(1.0 + 1.5*uOpen));
+          vec4 mv = modelViewMatrix*vec4(uCenter + uBasis*p, 1.0);
           gl_Position = projectionMatrix*mv;
           gl_PointSize = max(1.2, (0.012 + 0.010*(1.0 - s))*uScale*uPx/-mv.z);
           vec3 gold = mix(vec3(1.0,0.74,0.38)*1.7, vec3(1.0,0.52,0.16)*1.1, smoothstep(0.05, 0.6, s));
@@ -605,6 +610,18 @@ function boot() {
     vortex.frustumCulled = false;
     scene.add(vortex);
   }
+  // a soft haze behind the arms, so the galaxy reads as one body of light, never a sparse ring
+  const hazeTex = canvasTex(128, 128, (g, w) => {
+    const grd = g.createRadialGradient(w / 2, w / 2, 0, w / 2, w / 2, w / 2);
+    grd.addColorStop(0, "rgba(255,236,200,0.9)"); grd.addColorStop(0.18, "rgba(255,200,140,0.42)");
+    grd.addColorStop(0.5, "rgba(200,150,255,0.12)"); grd.addColorStop(1, "rgba(0,0,0,0)");
+    g.fillStyle = grd; g.fillRect(0, 0, w, w);
+  });
+  const vortexHaze = new THREE.Sprite(new THREE.SpriteMaterial({ map: hazeTex, color: 0xffffff, transparent: true, opacity: 0, depthWrite: false, blending: THREE.AdditiveBlending, fog: false }));
+  scene.add(vortexHaze);
+  const vtx = { phase: 0, kick: 0, n: new THREE.Vector3(), x: new THREE.Vector3(), y: new THREE.Vector3(), m: new THREE.Matrix4(), down: new THREE.Vector3(0, -1, 0), worldUp: new THREE.Vector3(0, 1, 0) };
+  // scrolling stirs it: the faster the scroll, the faster it turns for a moment
+  addEventListener("vs:progress", (e) => { vtx.kick = Math.min(1.4, Math.max(vtx.kick, Math.abs(e.detail.v || 0) / 2600)); });
 
   /* ------------------------------------------------------------ falling stars */
   const starsU = { ...pointUniforms, uAmount: { value: 0 }, uFrom: { value: new THREE.Vector3() }, uTo: { value: new THREE.Vector3() }, uScale: { value: 6 } };
@@ -862,11 +879,28 @@ function boot() {
     const vortexOn = sstep(0.12, 0.215, P);
     const toSky = sstep(0.30, 0.43, P);
     vortexU.uAmount.value = vortexOn * (1 - 0.35 * sstep(0.88, 1.0, P));
-    vortexU.uTilt.value = toSky;
-    vortexU.uScale.value = lerp(2.1, 7.0, toSky);
+    // it rises out of the aisle first and widens only once it has cleared the shelf tops (TOP),
+    // so the walls never slice its sides off on the way up
+    const rise = sstep(0, 0.6, toSky), widen = sstep(0.35, 1, toSky);
+    vortexU.uOpen.value = widen;
+    vortexU.uScale.value = lerp(2.1, 7.0, widen);
     vortexU.uViolet.value = lerp(0.25, 1.0, toSky);
-    vortexU.uSpin.value = lerp(1.0, 0.35, toSky);
-    vortexU.uCenter.value.set(0, lerp(3.25, 14.5, toSky), lerp(-3.6, -15, toSky));
+    vortexU.uCenter.value.set(0, lerp(3.25, 14.5, rise), lerp(-3.6, -15, rise));
+    vtx.kick = recording ? 0 : damp(vtx.kick, 0, 1.6, dt);
+    vtx.phase += dt * (lerp(1.0, 0.45, toSky) + vtx.kick);
+    vortexU.uPhase.value = vtx.phase;
+    // face the reader, leaning back a little once it's in the sky so it reads as a galaxy overhead
+    vtx.n.subVectors(camera.position, vortexU.uCenter.value).normalize().lerp(vtx.down, 0.28 * toSky).normalize();
+    vtx.x.crossVectors(vtx.worldUp, vtx.n);
+    if (vtx.x.lengthSq() < 1e-6) vtx.x.set(1, 0, 0);
+    vtx.x.normalize();
+    vtx.y.crossVectors(vtx.n, vtx.x);
+    vortexU.uBasis.value.setFromMatrix4(vtx.m.makeBasis(vtx.x, vtx.y, vtx.n));
+    vortexHaze.position.copy(vortexU.uCenter.value);
+    vortexHaze.scale.setScalar(vortexU.uScale.value * 1.9);
+    vortexHaze.material.opacity = vortexU.uAmount.value * lerp(0.2, 0.13, toSky);
+    vortexHaze.material.color.setRGB(1, lerp(0.92, 0.8, toSky), lerp(0.8, 1, toSky));
+    vortexHaze.visible = vortexHaze.material.opacity > 0.002;
     sky.material.uniforms.uReveal.value = toSky;
     sky.visible = toSky > 0.001;
     ceilMat.opacity = 1 - toSky; ceiling.visible = ceilMat.opacity > 0.01;
