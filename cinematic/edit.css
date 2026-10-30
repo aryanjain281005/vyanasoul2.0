@@ -160,9 +160,30 @@ select.vs-input { padding-right: 32px; }
 .vs-change-list del { color: var(--text-3); }
 .vs-change-list ins { text-decoration: none; color: var(--text-1); }
 .vs-changes { padding: 0 0 16px; }
+.vs-status { margin: 16px 20px 0; padding: 16px 18px; border-radius: 14px; display: grid; gap: 8px; border: 1px solid var(--hairline); background: var(--ink-2); }
+.vs-status > strong { font: 400 1.35rem/1.2 var(--serif); }
+.vs-status p { color: var(--text-2); font-size: 0.875rem; }
+.vs-status .vs-btn { justify-self: start; margin-top: 4px; }
+.vs-status-wait { border-color: var(--gold-line); }
+.vs-status-wait > strong { color: var(--gold-300); }
+.vs-status-busy { border-color: var(--gold-line); background: linear-gradient(160deg, rgba(240, 201, 133, 0.1), transparent 60%), var(--ink-2); }
+.vs-status-ok { border-color: rgba(169, 220, 180, 0.35); background: linear-gradient(160deg, rgba(169, 220, 180, 0.1), transparent 60%), var(--ink-2); }
+.vs-status-ok > strong { color: #c4ebcd; }
+.vs-status-bad { border-color: rgba(243, 192, 138, 0.45); }
+.vs-status-bad > strong { color: #f3c08a; }
+.vs-status-clock { justify-self: start; padding: 1px 10px; border-radius: 999px; background: rgba(240, 201, 133, 0.14); color: var(--gold-300); font: 600 0.8125rem/1.7 var(--sans); font-variant-numeric: tabular-nums; }
+.vs-steps { list-style: none; margin: 4px 0; padding: 0; display: grid; gap: 10px; }
+.vs-steps li { display: flex; align-items: center; gap: 10px; color: var(--text-3); font-size: 0.9rem; }
+.vs-steps li.is-done { color: var(--text-2); }
+.vs-steps li.is-now { color: var(--text-1); font-weight: 600; }
+.vs-step-mark { width: 18px; height: 18px; flex: none; border-radius: 50%; border: 1.5px solid var(--hairline); display: grid; place-items: center; }
+.vs-steps li.is-done .vs-step-mark { border-color: #a9dcb4; background: #a9dcb4; }
+.vs-steps li.is-done .vs-step-mark::after { content: ""; width: 8px; height: 4px; margin-top: -2px; border: solid var(--ink-0); border-width: 0 0 2px 2px; transform: rotate(-45deg); }
+.vs-steps li.is-now .vs-step-mark { border-color: var(--gold-300); border-right-color: transparent; animation: vs-spin 0.9s linear infinite; }
+.vs-list-h { margin: 18px 20px 0 !important; color: var(--text-3); font-size: 0.8125rem; font-weight: 600; }
 .vs-changes > .vs-note, .vs-changes > .vs-change-list, .vs-changes > .vs-row { padding: 0 20px; }
 .vs-changes > .vs-note { padding-top: 14px; }
-.vs-changes > .vs-change-list { flex: 1; overflow-y: auto; margin: 8px 0; }
+.vs-changes > .vs-change-list { flex: 1; overflow-y: auto; margin: 8px 0; align-content: start; }
 
 /* ---------- the dock ---------- */
 .vs-dock {
@@ -186,9 +207,15 @@ select.vs-input { padding-right: 32px; }
   background: transparent; color: var(--text-1); font: 600 0.8125rem/1 var(--sans); cursor: pointer; white-space: nowrap;
 }
 .vs-dock-btn:hover { background: rgba(242, 232, 213, 0.07); }
-.vs-changes-btn .vs-ic { width: 12px; height: 12px; fill: var(--text-3); stroke: none; }
-.vs-changes-btn.vs-has .vs-ic { fill: var(--gold-300); animation: vs-pulse 2.4s ease-in-out infinite; }
-.vs-changes-btn.vs-has { color: var(--gold-300); }
+/* the publishing state, always in the dock: changes waiting, publishing, all live */
+.vs-changes-btn .vs-ic { width: 14px; height: 14px; }
+.vs-changes-btn[data-state="pending"] { color: var(--gold-300); }
+.vs-changes-btn[data-state="pending"] .vs-ic { width: 12px; height: 12px; fill: var(--gold-300); stroke: none; animation: vs-pulse 2.4s ease-in-out infinite; }
+.vs-changes-btn[data-state="publishing"], .vs-changes-btn[data-state="saving"] { color: var(--gold-300); }
+.vs-changes-btn[data-state="publishing"] .vs-ic, .vs-changes-btn[data-state="saving"] .vs-ic { stroke-width: 2.4; animation: vs-spin 0.9s linear infinite; }
+.vs-changes-btn[data-state="live"] { color: #a9dcb4; }
+.vs-changes-btn[data-state="live"] .vs-ic { stroke-width: 2.4; }
+.vs-changes-btn[data-state="publishing"] .vs-count { font-variant-numeric: tabular-nums; }
 @keyframes vs-pulse { 50% { opacity: 0.35; } }
 .vs-dock .vs-primary { min-height: 40px; }
 
@@ -229,5 +256,5 @@ select.vs-input { padding-right: 32px; }
 @media (prefers-reduced-motion: reduce) {
   .vs-hl, .vs-focus-dot { transition: none; }
   .vs-sheet, .vs-changes, .vs-dock { animation: none; }
-  .vs-changes-btn.vs-has .vs-ic { animation: none; }
+  .vs-changes-btn .vs-ic, .vs-steps li.is-now .vs-step-mark { animation: none !important; }
 }

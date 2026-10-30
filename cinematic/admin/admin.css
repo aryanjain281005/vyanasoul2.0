@@ -151,3 +151,30 @@
 .tx-advanced > summary::before { content: "+"; color: var(--gold-300); width: 1rem; }
 .tx-advanced[open] > summary::before { content: "−"; }
 .tx-advanced > summary .a-hint { font-weight: 400; }
+
+/* publishing: one bar above the tabs says what's live */
+.pub-bar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-3) var(--s-4); margin: 0 0 var(--s-5); padding: var(--s-4) var(--s-5); border: 1px solid var(--hairline); border-radius: var(--r-md); background: var(--ink-1); }
+.pub-bar[hidden] { display: none; }
+.pub-dot { width: 12px; height: 12px; flex: none; border-radius: 50%; background: var(--text-3); }
+.pub-copy { flex: 1 1 18rem; display: grid; gap: 2px; }
+.pub-copy strong { font-weight: 600; font-variant-numeric: tabular-nums; }
+.pub-copy p { margin: 0; color: var(--text-2); font-size: var(--fs-sm); }
+.pub-actions { display: flex; gap: var(--s-2); }
+.pub-wait { border-color: var(--gold-line); }
+.pub-wait .pub-dot { background: var(--gold-300); box-shadow: 0 0 0 4px rgba(240, 201, 133, 0.18); }
+.pub-wait strong { color: var(--gold-300); }
+.pub-ok { border-color: rgba(169, 220, 180, 0.32); }
+.pub-ok .pub-dot { background: #a9dcb4; box-shadow: 0 0 0 4px rgba(169, 220, 180, 0.16); }
+.pub-busy { border-color: var(--gold-line); }
+.pub-busy .pub-dot { background: none; border: 2px solid var(--gold-300); border-right-color: transparent; animation: pub-spin 0.9s linear infinite; }
+.pub-bad { border-color: rgba(243, 192, 138, 0.45); }
+.pub-bad .pub-dot { background: #f3c08a; }
+.pub-bad strong { color: #f3c08a; }
+@keyframes pub-spin { to { transform: rotate(360deg); } }
+.pub-steps { list-style: none; margin: var(--s-1) 0 0; padding: 0; display: flex; flex-wrap: wrap; gap: var(--s-1) var(--s-4); font-size: var(--fs-sm); color: var(--text-3); }
+.pub-steps li::before { content: "○ "; }
+.pub-steps li.is-done { color: var(--text-2); }
+.pub-steps li.is-done::before { content: "✓ "; color: #a9dcb4; }
+.pub-steps li.is-now { color: var(--text-1); font-weight: 600; }
+.pub-steps li.is-now::before { content: "◌ "; color: var(--gold-300); }
+@media (prefers-reduced-motion: reduce) { .pub-busy .pub-dot { animation: none; } }

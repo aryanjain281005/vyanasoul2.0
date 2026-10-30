@@ -2,6 +2,7 @@
    Access is enforced by the database (row-level security, is_admin()), not by this page:
    a non-admin who signs in simply gets no rows. Bundled to admin/admin.js with `npm run build:admin`. */
 import { createClient } from "@supabase/supabase-js";
+import { ago as publishedAgo, clock, liveUrl, pendingChanges, publishingState, startPublish, stepStates, watchPublish } from "../shared/publish.js";
 
 const SUPABASE_URL = "https://xvdoutqezjsuogankqna.supabase.co";
 const PUBLISHABLE_KEY = "sb_publishable_H2PXLN9Ms30bXwxnyDz8RA_P-xIVIDO";
@@ -280,6 +281,7 @@ async function loadReviews() {
   const { data, error } = await sb.from("reviews").select("*").order("created_at", { ascending: false });
   if (error) { $("#rv-status").textContent = `Couldn't load reviews: ${error.message}`; return; }
   reviews = data.sort((a, b) => (Number(!!b.featured) - Number(!!a.featured)) || ((a.sort_order ?? 0) - (b.sort_order ?? 0)));
+  renderPubBar();
   const shown = reviews.filter((r) => r.published !== false).length;
   $("#rv-status").textContent = `${reviews.length} reviews, ${shown} shown on the website`;
   $("#rv-list").replaceChildren(...reviews.map((r) => h("li", { class: "a-card" },
@@ -345,15 +347,67 @@ $("#rv-delete").addEventListener("click", async () => {
   dlg.close();
   loadReviews();
 });
-async function updateWebsite(button, statusEl) {
-  button.classList.add("is-loading");
-  const { status } = await callFunction("rebuild");
-  button.classList.remove("is-loading");
-  statusEl.textContent = status === 202 ? "The website is updating. Changes appear in a minute or two."
-    : status === 501 ? "Automatic updates aren't switched on yet. Ask the developer to publish the site."
-    : "The update didn't start. Try again in a minute.";
+/* ---------------- publishing ----------------
+   One bar above the tabs says what's live: changes waiting, a publish in progress (with its
+   steps), or all live with when. Edit mode shows the same thing (shared/publish.js). */
+let site = null; // texts.json: what the last build put on the website
+let pub = null, pubResult = null, pubTimer = 0;
+const pubBar = $("#pub-bar");
+function renderPubBar() {
+  if (!site) return;
+  const n = pendingChanges(site, saved, reviews).length;
+  const openLive = h("a", { class: "btn btn-secondary btn-sm", href: liveUrl("../", site.builtAt), target: "_blank", rel: "noopener" }, "Open the live website");
+  const publishBtn = h("button", { type: "button", class: "btn btn-primary btn-sm", onclick: publishSite }, "Publish");
+  let kind, title, text, actions = [];
+  if (pub) {
+    kind = "busy"; title = `Publishing… ${clock((Date.now() - pub.state.at) / 1000)}`;
+    text = h("ol", { class: "pub-steps" }, ...stepStates(pub.phase).map((st) => h("li", { class: `is-${st.state}` }, st.label)));
+  } else if (pubResult?.phase === "failed" || pubResult?.phase === "slow" || pubResult?.phase === "start") {
+    kind = "bad"; title = pubResult.phase === "start" ? "Publishing didn't start" : pubResult.phase === "slow" ? "Publishing is taking longer than usual" : "Publishing didn't finish";
+    text = pubResult.message || (pubResult.phase === "slow" ? "It may still finish. Check again in a few minutes." : "Your changes are safe. Press Publish to try again; if it fails twice, tell the developer.");
+    actions = [publishBtn];
+  } else if (n) {
+    kind = "wait"; title = `${n} ${n === 1 ? "change" : "changes"} not on the website yet`;
+    text = "They're saved. Press Publish to show them to every visitor."; actions = [publishBtn];
+  } else {
+    kind = "ok"; title = pubResult?.phase === "live" ? "Published. Your changes are live." : "Everything is live";
+    text = `Last published ${publishedAgo(site.builtAt)}. Visitors see exactly what's saved here.`; actions = [openLive];
+  }
+  pubBar.className = `pub-bar pub-${kind}`;
+  pubBar.replaceChildren(h("span", { class: "pub-dot", "aria-hidden": "true" }), h("div", { class: "pub-copy" }, h("strong", {}, title), typeof text === "string" ? h("p", {}, text) : text), h("div", { class: "pub-actions" }, ...actions));
+  pubBar.hidden = false;
+  $("#count-text").textContent = n ? String(n) : "";
 }
-$("#rv-publish").addEventListener("click", (e) => updateWebsite(e.currentTarget, $("#rv-status")));
+async function publishSite() {
+  if (pub) return;
+  const btn = pubBar.querySelector(".btn-primary");
+  btn?.classList.add("is-loading");
+  const { data } = await sb.auth.getSession();
+  const r = await startPublish(FN, data.session?.access_token, site?.builtAt);
+  btn?.classList.remove("is-loading");
+  if (!r.ok) { pubResult = { phase: "start", message: r.message }; renderPubBar(); return; }
+  followPublish(r.state);
+}
+function followPublish(state) {
+  pub = { state, phase: "queued" };
+  pubResult = null;
+  clearInterval(pubTimer);
+  pubTimer = setInterval(() => {
+    const t = pubBar.querySelector(".pub-copy strong");
+    if (pub && t) t.textContent = `Publishing… ${clock((Date.now() - pub.state.at) / 1000)}`;
+  }, 1000);
+  renderPubBar();
+  watchPublish("../", state, (u) => {
+    if (["live", "failed", "slow"].includes(u.phase)) {
+      pub = null; clearInterval(pubTimer); pubResult = { phase: u.phase };
+      if (u.phase === "live") { site = u.site; texts = u.site.texts; renderTexts(); }
+    } else pub.phase = u.phase;
+    renderPubBar();
+  });
+}
+// the older buttons in the Reviews tab and the text list publish the same way
+const updateWebsite = () => { publishSite(); pubBar.scrollIntoView({ block: "nearest", behavior: "smooth" }); };
+$("#rv-publish").addEventListener("click", updateWebsite);
 
 /* ---------------- website text ----------------
    texts.json (written by the build) lists every text on the site: the original, what the
@@ -383,9 +437,13 @@ async function loadTexts() {
   ]);
   if (!list) { $("#tx-status").textContent = "The list of the website's text is missing. Ask the developer to rebuild the site."; return; }
   if (db.error) { $("#tx-status").textContent = `Couldn't load the saved text: ${db.error.message}`; return; }
+  site = list;
   texts = list.texts;
   saved = new Map(db.data.map((r) => [r.key, r]));
   renderTexts();
+  const running = publishingState();
+  if (running && !pub) followPublish(running); // a publish started in edit mode or before a reload
+  else renderPubBar();
 }
 
 function textItem(t) {
@@ -472,9 +530,9 @@ function renderTexts() {
         } }, "Remove this old edit")))))));
   }
   const pending = unpublished();
-  $("#count-text").textContent = pending ? String(pending) : "";
+  renderPubBar();
   $("#tx-status").textContent = (q ? `${list.length} ${list.length === 1 ? "text matches" : "texts match"} “${txQuery}”` : `${list.length} texts in ${groups.size} parts of the ${txLang === "hi" ? "Hindi" : "English"} page`)
-    + (pending ? `. ${pending} saved ${pending === 1 ? "change isn't" : "changes aren't"} on the website yet: press Update the website.` : ".");
+    + (pending ? `. ${pending} saved ${pending === 1 ? "change isn't" : "changes aren't"} on the website yet: press Publish.` : ".");
   $("#tx-list").replaceChildren(...(parts.length ? parts : [h("p", { class: "a-empty" }, txOnlyChanged ? "You haven't changed any text yet." : "No text matches. Try a shorter word.")]));
 }
 
@@ -506,7 +564,7 @@ async function saveTexts() {
   draft.clear();
   updateSaveBar();
   await loadTexts();
-  $("#tx-status").textContent = "Saved. Press Preview on the page to see it, then Update the website to show it to everyone.";
+  $("#tx-status").textContent = "Saved. Press Preview on the page to see it, then Publish to show it to everyone.";
 }
 
 function previewTexts() {
@@ -546,8 +604,8 @@ $("#tx-discard").addEventListener("click", () => {
 });
 $("#tx-preview").addEventListener("click", previewTexts);
 $("#tx-publish").addEventListener("click", (e) => {
-  if (draft.size && !confirm("Some changes aren't saved yet, so they won't be on the website. Update the website anyway?")) return;
-  updateWebsite(e.currentTarget, $("#tx-status"));
+  if (draft.size && !confirm("Some changes aren't saved yet, so they won't be on the website. Publish anyway?")) return;
+  updateWebsite();
 });
 addEventListener("beforeunload", (e) => { if (draft.size) { e.preventDefault(); e.returnValue = ""; } });
 

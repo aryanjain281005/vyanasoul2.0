@@ -69,6 +69,9 @@
         <button type="button" class="a-tab" id="tab-text" aria-controls="panel-text" aria-selected="false" role="tab">Edit website <span class="a-count" id="count-text"></span></button>
       </div>
 
+      <!-- what's live on the website, and Publish: the same story edit mode tells -->
+      <div class="pub-bar" id="pub-bar" role="status" aria-live="polite" hidden></div>
+
       <section class="a-panel" id="panel-requests" role="tabpanel" aria-labelledby="tab-requests">
         <div class="a-toolbar">
           <div class="a-filters" role="group" aria-label="Show requests">
@@ -94,9 +97,9 @@
       <section class="a-panel" id="panel-reviews" role="tabpanel" aria-labelledby="tab-reviews" hidden>
         <div class="a-toolbar">
           <button type="button" class="btn btn-primary btn-sm" id="rv-add">Add a review</button>
-          <button type="button" class="btn btn-secondary btn-sm" id="rv-publish">Update the website</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="rv-publish">Publish</button>
         </div>
-        <p class="a-hint a-hint-wide">Changes to reviews appear on the website after you press <strong>Update the website</strong> (it takes about a minute). Only show a review once the client has agreed.</p>
+        <p class="a-hint a-hint-wide">Changes to reviews appear on the website after you press <strong>Publish</strong> (it takes about two minutes). Only show a review once the client has agreed.</p>
         <p class="a-status" id="rv-status" role="status"></p>
         <ol class="a-list" id="rv-list"></ol>
       </section>
@@ -130,12 +133,12 @@
         <div class="a-toolbar">
           <label class="tx-only"><input type="checkbox" id="tx-changed"> Only show text I've changed</label>
           <button type="button" class="btn btn-secondary btn-sm" id="tx-preview">Preview on the page</button>
-          <button type="button" class="btn btn-primary btn-sm" id="tx-publish">Update the website</button>
+          <button type="button" class="btn btn-primary btn-sm" id="tx-publish">Publish</button>
         </div>
         <ol class="tx-steps a-hint-wide">
           <li>Change any text below and press <strong>Save changes</strong>.</li>
           <li>Press <strong>Preview on the page</strong> to see it on the real website. Only you see the preview.</li>
-          <li>Press <strong>Update the website</strong> to show it to everyone. It takes about a minute.</li>
+          <li>Press <strong>Publish</strong> to show it to everyone. It takes about two minutes.</li>
         </ol>
         <p class="a-status" id="tx-status" role="status"></p>
         <div id="tx-list"></div>

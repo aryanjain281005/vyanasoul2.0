@@ -8,6 +8,7 @@
    4. editing text in place   5. photos   6. reviews   7. all text   8. the dock: changes, publish
    9. start: sign-in check, load, wire up */
 import { createClient } from "@supabase/supabase-js";
+import { ago, clock, liveUrl, publishingState, startPublish, stepStates, watchPublish } from "../shared/publish.js";
 
 /* ---------------- 1. setup ---------------- */
 const SUPABASE_URL = "https://xvdoutqezjsuogankqna.supabase.co";
@@ -51,6 +52,8 @@ const ICONS = {
   quote: '<path d="M10 7H6.5A1.5 1.5 0 0 0 5 8.5V12h4v5H5M19 7h-3.5A1.5 1.5 0 0 0 14 8.5V12h4v5h-4"/>',
   up: '<path d="M12 19V5M6 11l6-6 6 6"/>',
   dot: '<circle cx="12" cy="12" r="4"/>',
+  check: '<path d="m5 12.5 4.5 4.5L19 7.5"/>',
+  spin: '<path d="M12 3a9 9 0 1 0 9 9"/>',
   search: '<circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/>',
 };
 const icon = (name) => {
@@ -944,32 +947,73 @@ function pendingList() {
   for (const r of reviews.values()) if (builtAt && (r.updated_at || r.created_at) > builtAt) out.push({ kind: "review", r });
   return out;
 }
+/* publishing: what the dock and the panel say (see shared/publish.js) */
+let pub = null;        // a publish in progress: { state, phase }
+let lastResult = null; // how the last publish from this page ended: { phase, at }
+let pubTimer = 0;
+const PHASE_TITLE = { queued: "Publishing your changes", building: "Publishing your changes", uploading: "Publishing your changes" };
+const elapsedNow = () => (pub ? (Date.now() - pub.state.at) / 1000 : 0);
+
 function updateDock() {
   const n = pendingList().length;
   const btn = $("#vs-changes-btn");
   if (!btn) return;
   const count = btn.querySelector(".vs-count");
-  if (saving) count.textContent = "Saving…";
-  else if (!n) count.textContent = narrow() ? "All live" : "All changes live";
-  else if (narrow()) count.replaceChildren(String(n), h("span", { class: "vs-hide-xs" }, " not live"));
-  else count.textContent = `${n} ${n === 1 ? "change" : "changes"} not live`;
-  btn.setAttribute("aria-label", n ? `${n} ${n === 1 ? "change" : "changes"} not live yet` : "All changes are live");
-  btn.classList.toggle("vs-has", n > 0);
-  $("#vs-publish").disabled = n === 0 && !saving;
+  let state = "live", label, aria;
+  if (pub) { state = "publishing"; label = `Publishing… ${clock(elapsedNow())}`; aria = "Publishing your changes"; }
+  else if (saving) { state = "saving"; label = "Saving…"; aria = "Saving"; }
+  else if (n) { state = "pending"; label = narrow() ? null : `${n} ${n === 1 ? "change" : "changes"} not live`; aria = `${n} ${n === 1 ? "change" : "changes"} not live yet`; }
+  else { label = narrow() ? "All live" : `All live · published ${ago(builtAt)}`; aria = `All changes are live, published ${ago(builtAt)}`; }
+  if (state === "pending" && narrow()) count.replaceChildren(String(n), h("span", { class: "vs-hide-xs" }, " not live"));
+  else count.textContent = label;
+  btn.replaceChild(icon(state === "publishing" || state === "saving" ? "spin" : state === "live" ? "check" : "dot"), btn.firstChild);
+  btn.dataset.state = state;
+  btn.setAttribute("aria-label", aria);
+  const publishBtn = $("#vs-publish");
+  publishBtn.disabled = !!pub || (n === 0 && !saving);
+  publishBtn.textContent = pub ? "Publishing…" : "Publish";
   if (!changesPanel.hidden) renderChanges();
+}
+
+function statusCard(n) {
+  const card = (kind, title, ...body) => h("div", { class: `vs-status vs-status-${kind}`, role: "status" }, h("strong", {}, title), ...body);
+  const openLive = () => h("a", { class: "vs-btn", href: liveUrl(ROOT, builtAt, LANG), target: "_blank", rel: "noopener" }, "Open the live website");
+  if (pub) {
+    return card("busy", PHASE_TITLE[pub.phase] || "Publishing your changes",
+      h("span", { class: "vs-status-clock", id: "vs-pub-clock" }, clock(elapsedNow())),
+      h("ol", { class: "vs-steps" }, ...stepStates(pub.phase).map((st) => h("li", { class: `is-${st.state}` }, h("span", { class: "vs-step-mark", "aria-hidden": "true" }), st.label, st.state === "now" ? h("span", { class: "sr-only" }, " (now)") : null))),
+      h("p", {}, "This takes about two minutes. You can keep editing: anything you change now goes out with the next Publish."));
+  }
+  if (lastResult?.phase === "failed") return card("bad", "Publishing didn't finish", h("p", {}, "Your changes are safe and still saved. Press Publish to try again. If it fails twice, tell the developer."));
+  if (lastResult?.phase === "slow") return card("bad", "Publishing is taking longer than usual", h("p", {}, "It may still finish. Reload this page in a few minutes; if the changes still say “not live”, press Publish again."));
+  if (lastResult?.phase === "start") return card("bad", "Publishing didn't start", h("p", {}, lastResult.message));
+  if (n) return card("wait", `${n} ${n === 1 ? "change" : "changes"} not live yet`, h("p", {}, "They're saved, and only you can see them. Press Publish to show them to every visitor."));
+  if (lastResult?.phase === "live") return card("ok", "Your changes are live", h("p", {}, `Published ${ago(builtAt)}. Every visitor now sees exactly what you see.`), openLive());
+  return card("ok", "Everything is live", h("p", {}, `Last published ${ago(builtAt)}. Visitors see exactly what you see.`), openLive());
+}
+
+// what a change is, value included, so a publish can tell what it took with it
+function changeId(c) {
+  if (c.kind === "text") return `t:${c.t.k}:${c.lang}:${current(c.t, c.lang)}`;
+  if (c.kind === "photo") return `p:${c.k}:${JSON.stringify(photoNow(c.k))}`;
+  if (c.kind === "gallery") return `g:${JSON.stringify(galleryNow())}`;
+  return `r:${c.r.id}:${c.r.updated_at || c.r.created_at}`;
 }
 function renderChanges() {
   const items = pendingList();
   const row = (title, body, undo) => h("li", {},
-    h("div", { class: "vs-text-meta" }, h("strong", {}, title), undo ? h("button", { type: "button", class: "vs-link", onclick: undo }, "Undo") : null),
+    h("div", { class: "vs-text-meta" }, h("strong", {}, title), undo && !pub ? h("button", { type: "button", class: "vs-link", onclick: undo }, "Undo") : null),
     body);
-  changesPanel.replaceChildren(
-    h("div", { class: "vs-sheet-head" }, h("h2", {}, items.length ? "Not live yet" : "Everything is live"),
+  changesPanel.replaceChildren(...[
+    h("div", { class: "vs-sheet-head" }, h("h2", {}, "Publishing"),
       h("button", { type: "button", class: "vs-icon-btn", "aria-label": "Close", onclick: closeSheets }, icon("close"))),
-    items.length
-      ? h("p", { class: "vs-note" }, "Saved, and only you can see them here. Press Publish to show them to everyone.")
-      : h("p", { class: "vs-note" }, "Visitors see exactly what you see. Click any text, photo or review to change it."),
-    h("ul", { class: "vs-change-list" }, ...items.map((c) => {
+    statusCard(items.length),
+    ...changeLists(items, row),
+    items.length && !pub ? h("div", { class: "vs-row vs-sheet-actions" }, publishButton(true)) : null,
+  ].filter(Boolean));
+}
+function changeLists(items, row) {
+  const li = (c) => {
       if (c.kind === "text") {
         const pageName = c.lang !== LANG ? ` (${LANG_NAME[c.lang]} page)` : "";
         return row(`${c.t.t}${pageName}`, h("p", {}, h("del", {}, quoteOf(published(c.t, c.lang), 70)), h("br"), h("ins", {}, quoteOf(current(c.t, c.lang), 70))),
@@ -979,50 +1023,67 @@ function renderChanges() {
         () => revertPhoto(c.k));
       if (c.kind === "gallery") return row("Photo rows", h("p", {}, "Photos added, removed or moved"), () => saveGallery(clone(galleryLive()), "The photo rows are back as they are on the website."));
       return row("Review", h("p", {}, `${(c.r.name || "").trim()}: ${c.r.published === false ? "hidden" : "edited or added"}`));
-    })),
-    h("div", { class: "vs-row vs-sheet-actions" }, publishButton(true)),
-  );
+  };
+  const list = (title, cs) => (cs.length ? [h("p", { class: "vs-list-h" }, title), h("ul", { class: "vs-change-list" }, ...cs.map(li))] : []);
+  if (!pub) return list("Waiting to be published:", items);
+  if (!pub.included) return list("Saved changes:", items); // publish started before this page loaded
+  const going = items.filter((c) => pub.included.has(changeId(c)));
+  return [...list("Going out in this publish:", going), ...list("Changed after Publish was pressed (goes out next time):", items.filter((c) => !going.includes(c)))];
+}
+function openChanges() {
+  closeSheets();
+  renderChanges();
+  changesPanel.hidden = false;
+  $("#vs-changes-btn")?.setAttribute("aria-expanded", "true");
 }
 function publishButton(big = false) {
   return h("button", { type: "button", class: `vs-btn vs-primary${big ? " vs-wide" : ""}`, onclick: publish }, "Publish");
 }
 async function publish(e) {
-  const btn = e.currentTarget;
+  if (pub) { openChanges(); return; }
   if (saving) { toast("Still saving. Try again in a moment."); return; }
+  const btn = e.currentTarget;
   btn.classList.add("is-loading");
   const { data } = await sb.auth.getSession();
-  const res = await fetch(`${FN}/rebuild`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session?.access_token || ""}` },
-    body: "{}",
-  }).catch(() => null);
+  const r = await startPublish(FN, data.session?.access_token, builtAt);
   btn.classList.remove("is-loading");
-  const status = res?.status;
-  if (status === 202) { toast("Publishing. This takes a minute or two; you'll see a message here when it's live."); watchPublish(builtAt); }
-  else if (status === 501) toast("Publishing switches on when the new website launches. Your changes are saved; the developer can publish this preview for you.", "error");
-  else toast("Publishing didn't start. Check the connection and try again in a minute.", "error");
+  if (!r.ok) { lastResult = { phase: "start", message: r.message }; openChanges(); toast(r.message, "error"); return; }
+  const included = new Set(pendingList().map(changeId));
+  followPublish(r.state);
+  pub.included = included;
+  openChanges();
 }
-
-// the build writes a new texts.json; when it appears, the site is live with the changes
-let watching = false;
-async function watchPublish(since) {
-  if (watching) return;
-  watching = true;
-  const until = Date.now() + 10 * 60000;
-  while (Date.now() < until) {
-    await new Promise((r) => setTimeout(r, 15000));
-    const list = await fetch(`${ROOT}admin/texts.json?t=${Date.now()}`, { cache: "no-store" }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
-    if (!list || list.builtAt === since) continue;
-    texts = list.texts; photos = list.photos || []; builtAt = list.builtAt;
-    pageTexts = texts.filter((t) => !isJs(t) && t.p.split(" ").includes(PAGE));
-    gallery = { original: list.gallery?.original || gallery.original, built: list.gallery?.built || null };
-    rebuildIndex(); markChanges(); updateDock();
-    toast("Published. Visitors now see your changes. If your browser still shows the old page, press Cmd+Shift+R (Ctrl+F5 on Windows) to refresh it.");
-    watching = false;
-    return;
-  }
-  watching = false;
-  toast("Publishing is taking longer than usual. Reload the page in a few minutes to check.", "error");
+// follow a publish (started here, or still running from before a reload) until it's live
+function followPublish(state) {
+  pub = { state, phase: "queued" };
+  lastResult = null;
+  clearInterval(pubTimer);
+  pubTimer = setInterval(() => {
+    const t = clock(elapsedNow());
+    const c = $("#vs-pub-clock");
+    if (c) c.textContent = t;
+    const count = $("#vs-changes-btn .vs-count");
+    if (count && pub) count.textContent = `Publishing… ${t}`;
+  }, 1000);
+  updateDock();
+  watchPublish(ROOT, state, (u) => {
+    if (u.phase === "live") {
+      const list = u.site;
+      texts = list.texts; photos = list.photos || []; builtAt = list.builtAt;
+      pageTexts = texts.filter((t) => !isJs(t) && t.p.split(" ").includes(PAGE));
+      gallery = { original: list.gallery?.original || gallery.original, built: list.gallery?.built || null };
+      rebuildIndex(); markChanges();
+    }
+    if (["live", "failed", "slow"].includes(u.phase)) {
+      pub = null;
+      clearInterval(pubTimer);
+      lastResult = { phase: u.phase, at: Date.now() };
+      if (u.phase === "live") toast("Published. Your changes are live for every visitor.");
+      else toast(u.phase === "failed" ? "Publishing didn't finish. Your changes are safe; try Publish again." : "Publishing is taking longer than usual.", "error");
+      openChanges();
+    } else pub.phase = u.phase;
+    updateDock();
+  });
 }
 
 function setMode(m) {
@@ -1045,9 +1106,7 @@ function buildDock() {
       h("a", { href: LANG === "hi" ? "#" : otherHref, "aria-current": LANG === "hi" ? "page" : null, lang: "hi" }, "हिं")),
     h("button", { type: "button", class: "vs-dock-btn", onclick: openAllText, title: "All text" }, icon("search"), h("span", { class: "vs-hide-s" }, "All text")),
     h("button", { type: "button", class: "vs-dock-btn vs-changes-btn", id: "vs-changes-btn", "aria-expanded": "false", "aria-controls": "vs-changes", onclick: () => {
-      const open = changesPanel.hidden;
-      closeSheets();
-      if (open) { renderChanges(); changesPanel.hidden = false; $("#vs-changes-btn").setAttribute("aria-expanded", "true"); }
+      if (changesPanel.hidden) openChanges(); else closeSheets();
     } }, icon("dot"), h("span", { class: "vs-count" }, "")),
     Object.assign(publishButton(), { id: "vs-publish" }),
     h("a", { class: "vs-icon-btn", href: location.pathname, title: "Leave edit mode", "aria-label": "Leave edit mode" }, icon("close")),
@@ -1130,6 +1189,8 @@ async function start() {
   const addReview = h("button", { type: "button", class: "vs-btn vs-primary vs-add-review vs-ui", onclick: () => openReview(null) }, "+ Add a review");
   $("#reviews-h")?.after(addReview);
   updateDock();
+  const running = publishingState();
+  if (running) followPublish(running); // a publish started before this page loaded
   liveChapters();
   html.classList.add("vs-ready");
   toast(touch ? "Edit mode. Tap any text, photo or review to change it." : "Edit mode. Click any text, photo or review to change it.");
