@@ -560,9 +560,10 @@ const clone = (o) => JSON.parse(JSON.stringify(o));
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const galleryOriginal = () => ({ strips: gallery.original.map((row) => row.map((k) => ({ k }))) });
 const galleryLive = () => gallery.built || galleryOriginal();
+// no saved row means the rows as written in the page (the build does the same), not as published
 function galleryNow() {
   try { const g = JSON.parse(saved.get("gallery")?.en || "null"); if (Array.isArray(g?.strips)) return g; } catch (e) {}
-  return galleryLive();
+  return galleryOriginal();
 }
 const galleryChanged = () => !same(galleryNow(), galleryLive());
 const findItem = (g, ref) => {
