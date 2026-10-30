@@ -1016,7 +1016,7 @@ async function watchPublish(since) {
     pageTexts = texts.filter((t) => !isJs(t) && t.p.split(" ").includes(PAGE));
     gallery = { original: list.gallery?.original || gallery.original, built: list.gallery?.built || null };
     rebuildIndex(); markChanges(); updateDock();
-    toast("Published. Visitors now see your changes.");
+    toast("Published. Visitors now see your changes. If your browser still shows the old page, press Cmd+Shift+R (Ctrl+F5 on Windows) to refresh it.");
     watching = false;
     return;
   }
