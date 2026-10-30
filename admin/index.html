@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Admin — Vyana Soul</title>
+  <meta name="theme-color" content="#08060f">
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="../styles.css">
+  <link rel="stylesheet" href="admin.css">
+  <script type="module" src="admin.js"></script>
+</head>
+<body class="admin">
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M20 11.5a8 8 0 0 1-11.6 7.1L4 20l1.4-4.2A8 8 0 1 1 20 11.5Z"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24"><path d="M5.2 3.8h3.3l1.6 4.1-2.1 1.4a11.5 11.5 0 0 0 6.7 6.7l1.4-2.1 4.1 1.6v3.3a1.6 1.6 0 0 1-1.7 1.6C10.6 19.8 4.2 13.4 3.6 5.5a1.6 1.6 0 0 1 1.6-1.7Z"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m4 7 8 6 8-6"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.6v.01"/></symbol>
+    <symbol id="i-lotus" viewBox="0 0 32 32"><path d="M16 5.5c3.2 4.3 3.2 10.4 0 16.5-3.2-6.1-3.2-12.2 0-16.5Z"/><path d="M16 22c-1.6-5.3-5.6-9.2-11.2-10.2-.2 6.3 4.8 10.4 11.2 10.2Z"/><path d="M16 22c1.6-5.3 5.6-9.2 11.2-10.2.2 6.3-4.8 10.4-11.2 10.2Z"/><path d="M4.5 24.5c5.2 2.6 17.8 2.6 23 0"/></symbol>
+  </svg>
+
+  <header class="site-header solid admin-header">
+    <a class="wordmark" href="../" aria-label="Vyana Soul website">
+      <svg viewBox="0 0 32 32" aria-hidden="true"><use href="#i-lotus"/></svg>
+      <span>Vyana Soul</span>
+    </a>
+    <span class="admin-who" id="who" hidden></span>
+    <button type="button" class="btn btn-secondary btn-sm" id="sign-out" hidden>Sign out</button>
+  </header>
+
+  <main class="admin-main" id="main">
+    <p class="admin-loading" id="loading" role="status">Loading…</p>
+
+    <!-- signed out -->
+    <section class="admin-signin" id="signin" hidden aria-labelledby="signin-h">
+      <h1 id="signin-h">Admin sign in</h1>
+      <p>For Rekha and the site's developer. Use the account you set up on the old website.</p>
+      <form class="admin-form" id="signin-form" novalidate>
+        <div class="a-field">
+          <label for="si-email">Email</label>
+          <input id="si-email" type="email" autocomplete="username" required>
+        </div>
+        <div class="a-field">
+          <label for="si-pass">Password</label>
+          <input id="si-pass" type="password" autocomplete="current-password">
+          <p class="a-hint">No password? Leave it empty and we'll email you a sign-in link.</p>
+        </div>
+        <p class="a-error" id="si-error" role="alert" hidden></p>
+        <p class="a-ok" id="si-ok" role="status" hidden></p>
+        <div class="a-actions">
+          <button class="btn btn-primary" type="submit" id="si-submit">Sign in</button>
+          <button class="btn btn-secondary" type="button" id="si-google">Sign in with Google</button>
+        </div>
+      </form>
+    </section>
+
+    <section class="admin-denied" id="denied" hidden aria-labelledby="denied-h">
+      <h1 id="denied-h">This account isn't an admin</h1>
+      <p>You're signed in as <strong id="denied-email"></strong>, which can't open the admin. Sign out and use Rekha's or the developer's account.</p>
+    </section>
+
+    <!-- signed in -->
+    <div class="admin-app" id="app" hidden>
+      <div class="a-tabs" role="tablist" aria-label="Admin sections">
+        <button type="button" class="a-tab" id="tab-requests" aria-controls="panel-requests" aria-selected="true" role="tab">Requests <span class="a-count" id="count-new"></span></button>
+        <button type="button" class="a-tab" id="tab-messages" aria-controls="panel-messages" aria-selected="false" role="tab">Messages <span class="a-count" id="count-msg"></span></button>
+        <button type="button" class="a-tab" id="tab-reviews" aria-controls="panel-reviews" aria-selected="false" role="tab">Reviews</button>
+        <button type="button" class="a-tab" id="tab-text" aria-controls="panel-text" aria-selected="false" role="tab">Edit website <span class="a-count" id="count-text"></span></button>
+      </div>
+
+      <!-- what's live on the website, and Publish: the same story edit mode tells -->
+      <div class="pub-bar" id="pub-bar" role="status" aria-live="polite" hidden></div>
+
+      <section class="a-panel" id="panel-requests" role="tabpanel" aria-labelledby="tab-requests">
+        <div class="a-toolbar">
+          <div class="a-filters" role="group" aria-label="Show requests">
+            <button type="button" class="a-chip" data-status="open" aria-pressed="true">Open</button>
+            <button type="button" class="a-chip" data-status="new" aria-pressed="false">New</button>
+            <button type="button" class="a-chip" data-status="in-progress" aria-pressed="false">In progress</button>
+            <button type="button" class="a-chip" data-status="completed" aria-pressed="false">Completed</button>
+            <button type="button" class="a-chip" data-status="cancelled" aria-pressed="false">Cancelled</button>
+            <button type="button" class="a-chip" data-status="all" aria-pressed="false">All</button>
+          </div>
+          <label class="a-search"><span class="sr-only">Search requests</span><input type="search" id="req-search" placeholder="Search name, phone, reference"></label>
+          <button type="button" class="btn btn-secondary btn-sm" id="refresh">Refresh</button>
+        </div>
+        <p class="a-status" id="req-status" role="status"></p>
+        <ol class="a-list" id="req-list"></ol>
+      </section>
+
+      <section class="a-panel" id="panel-messages" role="tabpanel" aria-labelledby="tab-messages" hidden>
+        <p class="a-status" id="msg-status" role="status"></p>
+        <ol class="a-list" id="msg-list"></ol>
+      </section>
+
+      <section class="a-panel" id="panel-reviews" role="tabpanel" aria-labelledby="tab-reviews" hidden>
+        <div class="a-toolbar">
+          <button type="button" class="btn btn-primary btn-sm" id="rv-add">Add a review</button>
+          <button type="button" class="btn btn-secondary btn-sm" id="rv-publish">Publish</button>
+        </div>
+        <p class="a-hint a-hint-wide">Changes to reviews appear on the website after you press <strong>Publish</strong> (it takes about two minutes). Only show a review once the client has agreed.</p>
+        <p class="a-status" id="rv-status" role="status"></p>
+        <ol class="a-list" id="rv-list"></ol>
+      </section>
+
+      <section class="a-panel" id="panel-text" role="tabpanel" aria-labelledby="tab-text" hidden>
+        <div class="ed-hero">
+          <div class="ed-copy">
+            <h2>Edit the website by clicking on it</h2>
+            <p>Open the real website in edit mode. Click any heading, paragraph, button, photo or review and change it right there. Only you see your changes until you press <strong>Publish</strong>.</p>
+            <div class="ed-actions">
+              <a class="btn btn-primary" href="../?edit">Edit the English page</a>
+              <a class="btn btn-secondary" href="../hi/?edit">Edit the Hindi page <span lang="hi">(हिन्दी)</span></a>
+            </div>
+            <p class="a-hint">While you're signed in on this device, the website also shows an <strong>Edit this page</strong> button in the corner.</p>
+          </div>
+          <ol class="ed-how" aria-label="How it works">
+            <li><span><strong>Click</strong> the words, photo or review you want to change.</span></li>
+            <li><span><strong>Type</strong>, then press Save. It's saved straight away.</span></li>
+            <li><span><strong>Publish</strong> when you're happy, and visitors see it in about a minute.</span></li>
+          </ol>
+        </div>
+        <details class="tx-advanced">
+          <summary>Or find any text in a list <span class="a-hint">for searching, and for text that isn't on screen, like what Google shows</span></summary>
+        <div class="a-toolbar">
+          <div class="a-filters" role="group" aria-label="Language of the page">
+            <button type="button" class="a-chip" id="tx-en" aria-pressed="true">English page</button>
+            <button type="button" class="a-chip" id="tx-hi" aria-pressed="false">Hindi page <span lang="hi">(हिन्दी)</span></button>
+          </div>
+          <label class="a-search"><span class="sr-only">Find text</span><input type="search" id="tx-search" placeholder="Find any text, for example a fee or a heading"></label>
+        </div>
+        <div class="a-toolbar">
+          <label class="tx-only"><input type="checkbox" id="tx-changed"> Only show text I've changed</label>
+          <button type="button" class="btn btn-secondary btn-sm" id="tx-preview">Preview on the page</button>
+          <button type="button" class="btn btn-primary btn-sm" id="tx-publish">Publish</button>
+        </div>
+        <ol class="tx-steps a-hint-wide">
+          <li>Change any text below and press <strong>Save changes</strong>.</li>
+          <li>Press <strong>Preview on the page</strong> to see it on the real website. Only you see the preview.</li>
+          <li>Press <strong>Publish</strong> to show it to everyone. It takes about two minutes.</li>
+        </ol>
+        <p class="a-status" id="tx-status" role="status"></p>
+        <div id="tx-list"></div>
+        </details>
+      </section>
+    </div>
+  </main>
+
+  <div class="tx-savebar" id="tx-savebar" hidden>
+    <p id="tx-dirty" role="status"></p>
+    <button type="button" class="btn btn-secondary btn-sm" id="tx-discard">Discard</button>
+    <button type="button" class="btn btn-primary btn-sm" id="tx-save">Save changes</button>
+  </div>
+
+  <dialog class="a-dialog" id="rv-dialog" aria-labelledby="rv-dialog-h">
+    <form class="admin-form" id="rv-form" method="dialog" novalidate>
+      <h2 id="rv-dialog-h">Add a review</h2>
+      <div class="a-grid">
+        <div class="a-field"><label for="rv-name">Name shown</label><input id="rv-name" required maxlength="80"></div>
+        <div class="a-field"><label for="rv-location">City</label><input id="rv-location" maxlength="80"></div>
+        <div class="a-field"><label for="rv-service">Session</label>
+          <select id="rv-service">
+            <option value="Akashic reading">Akashic reading</option>
+            <option value="Lama Fera healing">Lama Fera healing</option>
+            <option value="Pranic Healing">Pranic Healing</option>
+            <option value="Reading and healing">Reading and healing</option>
+            <option value="Personal consultation">Personal consultation</option>
+            <option value="">Not shown</option>
+          </select>
+        </div>
+        <div class="a-field"><label for="rv-language">Written in</label>
+          <select id="rv-language">
+            <option value="en">English</option>
+            <option value="hinglish">Hinglish (Hindi in English letters)</option>
+            <option value="hi">Hindi (Devanagari)</option>
+          </select>
+        </div>
+      </div>
+      <div class="a-field"><label for="rv-short">Short version <span class="a-opt">shown on the main page, two or three sentences</span></label><textarea id="rv-short" rows="3" required></textarea></div>
+      <div class="a-field"><label for="rv-full">Full review <span class="a-opt">optional, shown under "more reviews"</span></label><textarea id="rv-full" rows="6"></textarea></div>
+      <fieldset class="a-checks">
+        <legend class="sr-only">Show on the website</legend>
+        <label><input type="checkbox" id="rv-consent"> The client agreed to have this shown</label>
+        <label><input type="checkbox" id="rv-published" checked> Show on the website</label>
+        <label><input type="checkbox" id="rv-featured"> Feature at the top (up to 4)</label>
+      </fieldset>
+      <p class="a-error" id="rv-error" role="alert" hidden></p>
+      <div class="a-actions">
+        <button class="btn btn-primary" type="submit" id="rv-save" value="save">Save review</button>
+        <button class="btn btn-secondary" type="button" id="rv-cancel">Cancel</button>
+        <button class="btn btn-text a-danger" type="button" id="rv-delete" hidden>Delete review</button>
+      </div>
+    </form>
+  </dialog>
+</body>
+</html>
