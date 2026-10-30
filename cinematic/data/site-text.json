@@ -1,5 +1,11 @@
 {
-  "syncedAt": "2026-10-27T01:10:24.422Z",
-  "en": {},
+  "syncedAt": "2026-10-30T02:38:18.684Z",
+  "en": {
+    "Ask Rekha directly. She replies within 24 hours.": "Ask Rekha directly. She replies within the 24 hours.",
+    "gallery": "{\"strips\":[[{\"k\":\"assets/aarti.webp\"},{\"k\":\"assets/meditation.webp\"},{\"k\":\"assets/podcast.webp\"},{\"k\":\"assets/meditation-2.webp\"},{\"id\":\"mvucy88i2j9j\",\"src\":\"https://xvdoutqezjsuogankqna.supabase.co/storage/v1/object/public/site-photos/photo-mvucy7092pj.webp\",\"w\":1125,\"h\":2000,\"pos\":\"50% 50%\",\"alt\":{\"en\":\"gg\",\"hi\":\"\"}}],[{\"k\":\"assets/gallery/session-3.webp\"},{\"k\":\"assets/gallery/meditation-3.webp\"},{\"k\":\"assets/gallery/podcast-with-host.webp\"}]]}",
+    "img:assets/meditation-2.webp": "{\"src\":null,\"w\":602,\"h\":850,\"pos\":\"52% 42%\"}",
+    "Rekha reads the Akashic Records, the soul's own account of its past, present and possibilities, to help people understand their purpose, their relationships and the patterns that keep returning.": "Rekha reads the Akashic Records, the soul's own account of its past, present and possibilities, to help the people understand their purpose, their relationships and the patterns that keep returning.",
+    "You'll hear back within 24 hours on WhatsApp or email with your time, payment details and a short guide to prepare.": "You'll hear back within the 24 hours on WhatsApp or email with your time, payment details and a short guide to prepare."
+  },
   "hi": {}
 }

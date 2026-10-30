@@ -1,6 +1,19 @@
 {
-  "syncedAt": "2026-10-27T01:10:24.101Z",
+  "syncedAt": "2026-10-30T02:38:18.193Z",
   "reviews": [
+    {
+      "id": "16bcbfc6-f92a-4724-b845-77c57279f5cf",
+      "name": "Geetanjali Rathore",
+      "location": "Navi Mumbai",
+      "service": "Akashic reading",
+      "rating": 5,
+      "text": "She is unlike others. She values client satisfaction more than anything. I have never seen a Psychic medium like her so very patient and down to earth. She is calm n composed , answers every query with utmost patience. I am happy and grateful to her for taking my session. She never rushed through session even though it exceeded 1hr. I must say had a wonderful session. Though I prepared a questionnaire but couldn't follow it, the conversation just went natural .... One leading to other. She gave certain remedies too. I am definitely going to recommend her to my friends.\nKeep up the good work Rekha madam🙏. Soul like you is a true blessings to us wandering souls .🙏\nOm namah Shakti- Shivaye 🙏",
+      "short": "She is unlike others. She values client satisfaction more than anything. I have never seen a Psychic medium like her so very patient and down to earth. She is calm n composed , answers every query with utmost patience. I am happy and grateful to her for taking my session. She never rushed through session even though it exceeded 1hr. I must say had a wonderful session. Though I prepared a questionnaire but couldn't follow it, the conversation just went natural .... One leading to other. She gave certain remedies too. I am definitely going to recommend her to my friends.\nKeep up the good work Rekha madam🙏. Soul like you is a true blessings to us wandering souls .🙏\nOm namah Shakti- Shivaye 🙏",
+      "language": "en",
+      "featured": true,
+      "sortOrder": 0,
+      "createdAt": "2026-11-15T00:00:00+00:00"
+    },
     {
       "id": "seed-1",
       "name": "Mr. Rudra",
@@ -65,19 +78,6 @@
       "featured": false,
       "sortOrder": 0,
       "createdAt": "2026-11-20T00:00:00+00:00"
-    },
-    {
-      "id": "16bcbfc6-f92a-4724-b845-77c57279f5cf",
-      "name": "Geetanjali Rathore",
-      "location": "Navi Mumbai",
-      "service": "Akashic reading",
-      "rating": 5,
-      "text": "She is unlike others. She values client satisfaction more than anything. I have never seen a Psychic medium like her so very patient and down to earth. She is calm n composed , answers every query with utmost patience. I am happy and grateful to her for taking my session. She never rushed through session even though it exceeded 1hr. I must say had a wonderful session. Though I prepared a questionnaire but couldn't follow it, the conversation just went natural .... One leading to other. She gave certain remedies too. I am definitely going to recommend her to my friends.\nKeep up the good work Rekha madam🙏. Soul like you is a true blessings to us wandering souls .🙏\nOm namah Shakti- Shivaye 🙏",
-      "short": "She is unlike others. She values client satisfaction more than anything. I have never seen a Psychic medium like her so very patient and down to earth. She is calm n composed , answers every query with utmost patience. I am happy and grateful to her for taking my session. She never rushed through session even though it exceeded 1hr. I must say had a wonderful session. Though I prepared a questionnaire but couldn't follow it, the conversation just went natural .... One leading to other. She gave certain remedies too. I am definitely going to recommend her to my friends.\nKeep up the good work Rekha madam🙏. Soul like you is a true blessings to us wandering souls .🙏\nOm namah Shakti- Shivaye 🙏",
-      "language": "en",
-      "featured": false,
-      "sortOrder": 0,
-      "createdAt": "2026-11-15T00:00:00+00:00"
     },
     {
       "id": "cad4a18a-bdcc-40d0-9869-cabc771ede76",
